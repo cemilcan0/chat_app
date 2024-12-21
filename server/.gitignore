@@ -1,3 +1,36 @@
-.idea
-.vscode
-ssl
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+db.sqlite3
+media
+
+# Environments
+.env
+venv/
+env/
+ENV/
+.venv/
+ENV.bak/
+venv.bak/
+
+# Django specific
+*.mo
+*.py[cod]
+*.sqlite3
+*.pyo
+*.pyd
+*.pdb
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
