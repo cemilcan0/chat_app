@@ -53,7 +53,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware'
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'config.middlewares.JSONErrorMiddleware',
 ]
 
 REST_FRAMEWORK = {
@@ -62,7 +63,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
         'chat_app.authentication.BearerAuthentication'
-    ]
+    ],
+    'EXCEPTION_HANDLER': 'config.exception_handler.custom_exception_handler',
 }
 
 ROOT_URLCONF = 'config.urls'
@@ -152,6 +154,7 @@ CHANNEL_LAYERS = {
 CORS_ALLOWED_ORIGINS = [
     'https://localhost:3001',
     'https://localhost:3000',
+    'http://localhost:1212',
     'https://127.0.0.1:3000',
     'https://127.0.0.1:3001',
     'https://192.168.31.39:3001',
@@ -161,3 +164,22 @@ CORS_ALLOWED_ORIGINS = [
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+        },
+    },
+}
+
+APPEND_SLASH = True
+

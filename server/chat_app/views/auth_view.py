@@ -26,7 +26,6 @@ class Login(ObtainAuthToken):
 
     def post(self, request, *args, **kwargs):
         """
-
         @param request:
         @param args:
         @param kwargs:
