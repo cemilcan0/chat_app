@@ -8,13 +8,13 @@ type Props = {
 };
 
 const Chat: React.FC<Props> = ({ activeChat, user }) => {
+  const [showDetails, setShowDetails] = useState(false); // Sağ panel görünürlüğü
   const [message, setMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeChat || !message.trim()) return;
 
-    console.log('Message:', message);
     try {
       const res = await apiClient.post('/chat-app/message/', {
         text: message,
@@ -29,11 +29,15 @@ const Chat: React.FC<Props> = ({ activeChat, user }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-200">
-      <div className="flex flex-col h-full">
+    <div className="flex h-full">
+      {/* Chat Panel */}
+      <div className={`flex-1 flex flex-col bg-gray-200 transition-all duration-300`}>
         {activeChat ? (
           <>
-            <div className="py-3 px-5 bg-blue-500 text-white shadow-md">
+            <div
+              className="py-3 px-5 bg-blue-500 text-white shadow-md cursor-pointer"
+              onClick={() => setShowDetails(!showDetails)} // Paneli aç/kapat
+            >
               <h2 className="font-semibold text-xl">{activeChat.name}</h2>
               <p className="text-sm text-white/80">{activeChat.status}</p>
             </div>
@@ -44,8 +48,11 @@ const Chat: React.FC<Props> = ({ activeChat, user }) => {
                 activeChat.messages.map((message, index) => (
                   <div
                     key={index}
-                    className={`p-2 my-2 rounded-lg w-fit max-w-[45%] ${message.sender === user?.username ? 'bg-blue-500 ml-auto text-white' : 'bg-white mr-auto'
-                      }`}
+                    className={`p-2 my-2 rounded-lg w-fit max-w-[45%] ${
+                      message.sender === user?.username
+                        ? 'bg-blue-500 ml-auto text-white'
+                        : 'bg-white mr-auto'
+                    }`}
                   >
                     <p>{message.text}</p>
                   </div>
@@ -76,6 +83,18 @@ const Chat: React.FC<Props> = ({ activeChat, user }) => {
           </div>
         )}
       </div>
+
+      {/* Sağ Panel */}
+      {showDetails && activeChat && (
+        <div className="w-1/3 bg-white border-l border-gray-300 p-4">
+          <h3 className="font-bold text-lg mb-2">{activeChat.name}</h3>
+          <p className="text-gray-600">Status: {activeChat.status}</p>
+          <p className="text-gray-600">Username: {activeChat.username}</p>
+          <p className="text-gray-600">
+            Total Messages: {activeChat.messages.length}
+          </p>
+        </div>
+      )}
     </div>
   );
 };
