@@ -14,5 +14,5 @@ COPY . .
 # Gerekli portları aç
 EXPOSE 8000
 
-# Django komutlarını çalıştır (ör. migration ve runserver)
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+# Daphne ile uygulamayı çalıştır
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]

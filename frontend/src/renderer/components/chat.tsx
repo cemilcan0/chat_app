@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Chat, User } from '../types';
 import apiClient from '../apiClient';
 
@@ -10,17 +10,76 @@ type Props = {
 const Chat: React.FC<Props> = ({ activeChat, user }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [message, setMessage] = useState('');
+  const [webSocketMessages, setWebSocketMessages] = useState<{ sender: string; text: string }[]>([]);
+
+  const webSocketRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    if (!activeChat || !user) return;
+
+    // WebSocket URL
+    const socketUrl = `ws://localhost:8000/ws/message/${user.username}/`;
+
+    // WebSocket initialization
+    webSocketRef.current = new WebSocket(socketUrl);
+
+    // WebSocket event listeners
+    webSocketRef.current.onopen = () => {
+      console.log('WebSocket connected');
+    };
+
+    webSocketRef.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.status === 'new_message') {
+        setWebSocketMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: data.sender, text: data.message },
+        ]);
+      }
+    };
+
+    webSocketRef.current.onclose = () => {
+      console.log('WebSocket disconnected');
+    };
+
+    webSocketRef.current.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    // Cleanup on component unmount
+    return () => {
+      if (webSocketRef.current) {
+        webSocketRef.current.close();
+      }
+    };
+  }, [activeChat, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeChat || !message.trim()) return;
 
     try {
-      const res = await apiClient.post('/chat-app/message/', {
+      // Send message through WebSocket
+      if (webSocketRef.current) {
+        webSocketRef.current.send(
+          JSON.stringify({
+            type: 'chat_message',
+            message: message,
+          })
+        );
+
+        // Gönderilen mesajı hemen güncelle
+        setWebSocketMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: user?.username || 'You', text: message },
+        ]);
+      }
+
+      // Optional: Send message through API as fallback
+      await apiClient.post('/chat-app/message/', {
         text: message,
         receiver: activeChat.username,
       });
-      console.log('Message sent:', res.data);
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -42,21 +101,33 @@ const Chat: React.FC<Props> = ({ activeChat, user }) => {
               <p className="text-sm text-white/80">{activeChat.status}</p>
             </div>
             <div className="flex-1 p-4 overflow-y-auto bg-gray-100">
-              {activeChat.messages.length === 0 ? (
+              {activeChat.messages.length === 0 && webSocketMessages.length === 0 ? (
                 <div className="text-gray-500 text-center">No messages yet.</div>
               ) : (
-                activeChat.messages.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`p-2 my-2 rounded-lg w-fit max-w-[45%] ${
-                      message.sender === user?.username
-                        ? 'bg-blue-500 ml-auto text-white'
-                        : 'bg-white mr-auto'
-                    }`}
-                  >
-                    <p>{message.text}</p>
-                  </div>
-                ))
+                <>
+                  {activeChat.messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`p-2 my-2 rounded-lg w-fit max-w-[45%] ${message.sender === user?.username
+                          ? 'bg-blue-500 ml-auto text-white'
+                          : 'bg-white mr-auto'
+                        }`}
+                    >
+                      <p>{message.text}</p>
+                    </div>
+                  ))}
+                  {webSocketMessages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`p-2 my-2 rounded-lg w-fit max-w-[45%] ${message.sender === user?.username
+                          ? 'bg-blue-500 ml-auto text-white'
+                          : 'bg-white mr-auto'
+                        }`}
+                    >
+                      <p>{message.text}</p>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
             <div className="p-4 flex items-center gap-2 bg-white border-t border-gray-300">
@@ -86,12 +157,12 @@ const Chat: React.FC<Props> = ({ activeChat, user }) => {
 
       {/* Sağ Panel */}
       {showDetails && activeChat && (
-        <div className="w-[40%] bg-white border-l border-gray-300 p-4">
+        <div className="w-1/3 bg-white border-l border-gray-300 p-4">
           <h3 className="font-bold text-lg mb-2">{activeChat.name}</h3>
           <p className="text-gray-600">Status: {activeChat.status}</p>
           <p className="text-gray-600">Username: {activeChat.username}</p>
           <p className="text-gray-600">
-            Total Messages: {activeChat.messages.length}
+            Total Messages: {activeChat.messages.length + webSocketMessages.length}
           </p>
         </div>
       )}
