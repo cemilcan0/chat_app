@@ -8,7 +8,7 @@ type Props = {
 };
 
 const Chat: React.FC<Props> = ({ activeChat, user }) => {
-  const [showDetails, setShowDetails] = useState(false); // Sağ panel görünürlüğü
+  const [showDetails, setShowDetails] = useState(false);
   const [message, setMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,9 +29,9 @@ const Chat: React.FC<Props> = ({ activeChat, user }) => {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full w-2/3">
       {/* Chat Panel */}
-      <div className={`flex-1 flex flex-col bg-gray-200 transition-all duration-300`}>
+      <div className={`flex flex-col bg-gray-200 transition-all duration-300 w-full`}>
         {activeChat ? (
           <>
             <div
@@ -86,7 +86,7 @@ const Chat: React.FC<Props> = ({ activeChat, user }) => {
 
       {/* Sağ Panel */}
       {showDetails && activeChat && (
-        <div className="w-1/3 bg-white border-l border-gray-300 p-4">
+        <div className="w-[40%] bg-white border-l border-gray-300 p-4">
           <h3 className="font-bold text-lg mb-2">{activeChat.name}</h3>
           <p className="text-gray-600">Status: {activeChat.status}</p>
           <p className="text-gray-600">Username: {activeChat.username}</p>
