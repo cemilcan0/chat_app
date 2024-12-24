@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import photo from '../../../assets/images/photo.jpg';
+import logout from '../../../assets/icons/logout-svgrepo-com.svg';
 import { Chat as ChatType, User } from '../types';
 import Friends from '../components/friends';
 import Chat from '../components/chat';
@@ -11,6 +12,12 @@ const Home: React.FC = () => {
     const userData = localStorage.getItem("user");
     return userData ? JSON.parse(userData) as User : null;
   })();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.reload();
+  }
 
   return (
     <div className="flex h-screen">
@@ -27,6 +34,10 @@ const Home: React.FC = () => {
             <h4 className="text-[#5C52C7] font-bold text-lg">{user?.name || "Guest User"}</h4>
             <p className="text-xs text-gray-500 font-bold">{user?.status || "No status"}</p>
           </div>
+
+          <button className='ml-auto mr-8' onClick={handleLogout}>
+            <img src={logout} alt="Logout" className='w-5 h-5' />
+          </button>
         </div>
 
         <Friends activeChat={activeChat} setActiveChat={setActiveChat} />
