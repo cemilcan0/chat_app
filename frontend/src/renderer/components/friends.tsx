@@ -1,29 +1,13 @@
-import React, { useEffect, useState } from 'react'
-import apiClient from '../apiClient';
-import { Chat } from '../types';
+import React, { useEffect } from 'react';
+import useChatStore from '../store/chatStore';
 import dummyPhoto from '../../../assets/images/photo.jpg';
 
-type Props = {
-  activeChat: Chat | null;
-  setActiveChat: React.Dispatch<React.SetStateAction<Chat | null>>
-}
-
-const Friends: React.FC<Props> = ({ activeChat, setActiveChat }) => {
-  const [chats, setChats] = useState<Chat[]>([]);
+const Friends: React.FC = () => {
+  const { chats, fetchChats, setActiveChat, activeChat } = useChatStore();
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await apiClient.get('/chat-app/users/');
-        setChats(res.data);
-        console.log(res.data);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      }
-    };
-
-    fetchUsers();
-  }, []);
+    fetchChats();
+  }, [fetchChats]);
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -31,12 +15,14 @@ const Friends: React.FC<Props> = ({ activeChat, setActiveChat }) => {
         const lastMessage =
           chat.messages.length > 0
             ? chat.messages[chat.messages.length - 1].text
-            : "No messages";
+            : 'No messages';
 
         return (
           <div
             key={index}
-            className={`p-4 flex justify-between items-center border-b border-gray-300 cursor-pointer transition-colors ${activeChat?.username === chat.username ? "bg-blue-100" : "hover:bg-blue-50"}`}
+            className={`p-4 flex justify-between items-center border-b border-gray-300 cursor-pointer transition-colors ${
+              activeChat?.username === chat.username ? 'bg-blue-100' : 'hover:bg-blue-50'
+            }`}
             onClick={() => setActiveChat(chat)}
           >
             <div className="flex w-full gap-2">
@@ -47,8 +33,9 @@ const Friends: React.FC<Props> = ({ activeChat, setActiveChat }) => {
                   className="w-10 h-10 rounded-full"
                 />
                 <div
-                  className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${chat.status === "online" ? "bg-green-500" : "bg-red-500"
-                    }`}
+                  className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                    chat.status === 'online' ? 'bg-green-500' : 'bg-red-500'
+                  }`}
                 ></div>
               </div>
 
@@ -58,10 +45,10 @@ const Friends: React.FC<Props> = ({ activeChat, setActiveChat }) => {
               </div>
             </div>
           </div>
-        )
+        );
       })}
     </div>
-  )
-}
+  );
+};
 
-export default Friends
+export default Friends;

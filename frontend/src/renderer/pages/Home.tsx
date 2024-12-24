@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import photo from '../../../assets/images/photo.jpg';
 import logout from '../../../assets/icons/logout-svgrepo-com.svg';
-import { Chat as ChatType, User } from '../types';
+import { ChatType, UserType } from '../types';
 import Friends from '../components/friends';
 import Chat from '../components/chat';
 
 const Home: React.FC = () => {
   const [activeChat, setActiveChat] = useState<ChatType | null>(null);
 
-  const user: User | null = (() => {
+  const user: UserType | null = (() => {
     const userData = localStorage.getItem("user");
-    return userData ? JSON.parse(userData) as User : null;
+    return userData ? JSON.parse(userData) as UserType : null;
   })();
 
   const handleLogout = () => {
