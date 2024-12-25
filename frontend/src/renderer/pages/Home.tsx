@@ -40,11 +40,11 @@ const Home: React.FC = () => {
           </button>
         </div>
 
-        <Friends activeChat={activeChat} setActiveChat={setActiveChat} />
+        <Friends />
       </div>
 
       {/* Sağ Panel */}
-      <Chat activeChat={activeChat} user={user} />
+      <Chat />
     </div>
   );
 };
