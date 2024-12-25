@@ -31,7 +31,8 @@ class Login(ObtainAuthToken):
         @param kwargs:
         @return:
         """
-        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer = self.serializer_class(
+            data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
@@ -61,7 +62,8 @@ class RegisterView(CreateAPIView):
 
 
 class LogOutView(APIView):
-    authentication_classes = [SessionAuthentication, BasicAuthentication, BearerAuthentication]
+    authentication_classes = [SessionAuthentication,
+                              BasicAuthentication, BearerAuthentication]
 
     def post(self, request, format=None):
         profile = request.user.profile
@@ -73,11 +75,13 @@ class LogOutView(APIView):
 
 class UsersView(generics.ListAPIView):
     serializer_class = UsersWithMessageSerializer
-    authentication_classes = [SessionAuthentication, BasicAuthentication, BearerAuthentication]
+    authentication_classes = [SessionAuthentication,
+                              BasicAuthentication, BearerAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        users = User.objects.exclude(pk=self.request.user.pk).order_by('-profile__online').all()
+        users = User.objects.exclude(
+            pk=self.request.user.pk).order_by('-profile__online').all()
         return users
 
 

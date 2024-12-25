@@ -6,7 +6,7 @@ from rest_framework.authtoken import views
 from chat_app.views.call_view import StartCall, EndCall
 from chat_app.views.message_view import MessageView
 from config import settings
-from chat_app.views.friendship_view import SendFriendRequestView, AcceptFriendRequestView
+from chat_app.views.friendship_view import SendFriendRequestView, AcceptFriendRequestView, FriendsView
 
 
 from chat_app.views.group_view import CreateGroupView, AddGroupMemberView
@@ -24,6 +24,7 @@ urlpatterns = [
     path('test-socket/', test_socket),
     path('create-group/', CreateGroupView.as_view(), name='create-group'),
     path('add-group-member/<int:pk>/', AddGroupMemberView.as_view(), name='add-group-member'),
+    path('friends/', FriendsView.as_view(), name='friends'),
     path('send-friend-request/', SendFriendRequestView.as_view(), name='send-friend-request'),
     path('accept-friend-request/', AcceptFriendRequestView.as_view(), name='accept-friend-request'),
 ]

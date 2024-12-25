@@ -18,9 +18,9 @@ from chat_app.models import ChatGroup, GroupMessage
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatGroup
-        fields = ('id', 'name', 'description', 'admin', 'members', 'created_at')
+        fields = ('id', 'name', 'description',
+                  'admin', 'members', 'created_at')
         read_only_fields = ('admin', 'created_at')
-
 
 
 class GroupMessageSerializer(serializers.ModelSerializer):
@@ -41,7 +41,8 @@ class MessageSerializer(serializers.Serializer):
             message.sender = self.context['request'].user
             message.receiver = user
             message.save()
-            self._broadcast(message)  # __broadcast yerine _broadcast kullanıyoruz
+            # __broadcast yerine _broadcast kullanıyoruz
+            self._broadcast(message)
             return validated_data
         except User.DoesNotExist:
             raise serializers.ValidationError({'receiver': 'User not found.'})
@@ -91,7 +92,8 @@ class UsersWithMessageSerializer(serializers.ModelSerializer):
         messages = Message.objects.filter(
             Q(receiver=obj, sender=self.context['request'].user) |
             Q(sender=obj, receiver=self.context['request'].user)).prefetch_related('sender', 'receiver')
-        serializer = MessageModelSerializer(messages.order_by('date_time'), many=True)
+        serializer = MessageModelSerializer(
+            messages.order_by('date_time'), many=True)
         return serializer.data
 
 
@@ -138,3 +140,34 @@ class RegistrationSerializer(serializers.ModelSerializer):
                 'message': serializer.data
             }
         )
+
+
+class FriendsWithLastMessageSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    photo = serializers.ImageField(source='to_user.profile.photo')
+    online = serializers.BooleanField(source='to_user.profile.online')
+    status = serializers.CharField(source='to_user.profile.status')
+    username = serializers.CharField(source='to_user.username')
+    last_message = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Friendship
+        fields = ('name', 'username', 'photo',
+                  'online', 'status', 'last_message')
+
+    def get_name(self, obj):
+        if obj.to_user.first_name:
+            return f"{obj.to_user.first_name} {obj.to_user.last_name}"
+        return obj.to_user.username
+
+    def get_last_message(self, obj):
+        last_message = Message.objects.filter(
+            Q(sender=obj.to_user, receiver=self.context['request'].user) |
+            Q(sender=self.context['request'].user, receiver=obj.to_user)
+        ).order_by('-date_time').first()
+        if last_message:
+            return {
+                "text": last_message.text,
+                "date_time": last_message.date_time,
+            }
+        return None

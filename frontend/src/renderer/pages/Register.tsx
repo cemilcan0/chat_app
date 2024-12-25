@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import photo from "../../../assets/images/login_background.jpg";
-import logo from "../../../assets/images/logo.jpg";
+import photo2 from "../../../assets/images/login_backround_desert.jpg";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../apiClient";
 
@@ -13,21 +12,20 @@ const Register: React.FC = () => {
     last_name: "",
     email: "",
   });
-  const [error, setError] = useState<string | null>(null);
-
-  const predefinedErrors: { [key: string]: string } = {
-    "A user with that username already exists.": "A user with that username already exists.",
-    "This email is already registered.": "This email is already registered.",
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormData({ ...formData, [id]: value });
-  };
+  const [termsAccepted, setTermsAccepted] = useState(false); // Terms & Conditions kontrolü
+  const [loading, setLoading] = useState(false); // Loading durumu
+  const [errorMessage, setErrorMessage] = useState<string | null>(null); // Hata mesajı
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
+    setErrorMessage(""); // Hata mesajını sıfırla
+
+    if (!termsAccepted) {
+      setErrorMessage("You must accept the Terms & Conditions to register.");
+      return;
+    }
+
+    setLoading(true); // Loading durumunu başlat
 
     apiClient
       .post("/chat-app/registration/", formData)
@@ -35,150 +33,143 @@ const Register: React.FC = () => {
         navigate("/login?ref=register");
       })
       .catch((error) => {
-        if (error.response?.data) {
-          const responseErrors = error.response.data;
-          let foundError = false;
-
-          for (const key in responseErrors) {
-            const errorMessages = Array.isArray(responseErrors[key])
-              ? responseErrors[key]
-              : [responseErrors[key]];
-            for (const message of errorMessages) {
-              if (predefinedErrors[message]) {
-                setError(predefinedErrors[message]);
-                foundError = true;
-                break;
-              }
-            }
-            if (foundError) break;
-          }
-
-          if (!foundError) {
-            setError("An error occurred, please try again later!");
-          }
-        } else {
-          setError("An error occurred, please try again later!");
-        }
+        const message =
+          error.response?.data?.detail || "Registration failed. Please try again.";
+        setErrorMessage(message); // Hata mesajını ayarla
+      })
+      .finally(() => {
+        setLoading(false); // Loading durumunu bitir
       });
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4"
-      style={{
-        backgroundImage: `url(${photo})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <div className="bg-white shadow-lg rounded-lg p-6 sm:p-8 w-full max-w-sm sm:max-w-md">
-        <div className="flex justify-center mb-6">
-          <img src={logo} alt="Ebolt" className="h-8 sm:h-10" />
+    <div className="flex min-h-screen bg-[#2B2738] relative">
+      {/* Sol Kısım - Görsel Arka Plan */}
+      <div
+        className="hidden md:flex w-1/2 items-center justify-center m-6 rounded-lg"
+        style={{
+          backgroundImage: `url(${photo2})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="text-white text-center px-8">
+          <h1 className="text-4xl font-bold mb-4">Join Us Today</h1>
+          <p className="text-lg">Create an account and start connecting!</p>
         </div>
-        <h2 className="text-xl sm:text-2xl font-semibold text-center mb-2">
-          Create an account
-        </h2>
-        {error && (
-          <div className="mb-4 p-4 bg-red-100 text-red-600 rounded-lg text-center">
-            {error}
-          </div>
-        )}
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="username" className="sr-only">
-              Username
-            </label>
-            <div className="relative">
+      </div>
+
+      {/* Sağ Kısım - Register Formu */}
+      <div className="grid place-items-center min-h-screen w-full md:w-1/2 bg-[#2B2738]">
+        <div className="bg-[#2B2738] text-white p-8 rounded-lg w-full max-w-md">
+          <h1 className="text-3xl font-bold text-center mb-4">
+            Create an Account
+          </h1>
+          <p className="text-center text-gray-400 mb-6">
+            Already have an account?{" "}
+            <button
+              onClick={() => navigate("/login")}
+              className="text-purple-500 hover:underline"
+            >
+              Login here
+            </button>
+          </p>
+          {errorMessage && (
+            <p className="text-red-500 text-center mb-4">{errorMessage}</p>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
               <input
                 type="text"
-                id="username"
                 placeholder="Username"
                 value={formData.username}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
+                className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 required
               />
             </div>
-          </div>
-          <div className="mb-4">
-            <label htmlFor="password" className="sr-only">
-              Password
-            </label>
-            <div className="relative">
+            <div>
               <input
                 type="password"
-                id="password"
                 placeholder="Password"
                 value={formData.password}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 required
               />
             </div>
-          </div>
-          <div className="mb-4">
-            <label htmlFor="first_name" className="sr-only">
-              First Name
-            </label>
-            <div className="relative">
+            <div>
               <input
                 type="text"
-                id="first_name"
                 placeholder="First Name"
                 value={formData.first_name}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                onChange={(e) =>
+                  setFormData({ ...formData, first_name: e.target.value })
+                }
+                className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 required
               />
             </div>
-          </div>
-          <div className="mb-4">
-            <label htmlFor="last_name" className="sr-only">
-              Last Name
-            </label>
-            <div className="relative">
+            <div>
               <input
                 type="text"
-                id="last_name"
                 placeholder="Last Name"
                 value={formData.last_name}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                onChange={(e) =>
+                  setFormData({ ...formData, last_name: e.target.value })
+                }
+                className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 required
               />
             </div>
-          </div>
-          <div className="mb-4">
-            <label htmlFor="email" className="sr-only">
-              Email
-            </label>
-            <div className="relative">
+            <div>
               <input
                 type="email"
-                id="email"
                 placeholder="Email"
                 value={formData.email}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 required
               />
             </div>
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition text-sm sm:text-base"
-          >
-            Register
-          </button>
-        </form>
-        <div className="my-6 text-center text-gray-500 text-sm sm:text-base">
-          Already have an account?{" "}
-          <button
-            onClick={() => navigate("/login")}
-            className="text-blue-500 hover:underline"
-          >
-            Sign in
-          </button>
+            {/* Terms & Conditions */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="h-4 w-4 border-[#4E435F] rounded bg-[#3A3248] text-purple-500 focus:ring-2 focus:ring-purple-500"
+              />
+              <label htmlFor="terms" className="ml-2 text-gray-400">
+                I agree to the{" "}
+                <a
+                  href="https://perlanera.co/policies/legal-notice"
+                  className="text-purple-500 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Terms & Conditions
+                </a>
+              </label>
+            </div>
+            <button
+              type="submit"
+              className={`w-full py-2 rounded-lg transition ${loading
+                  ? "bg-purple-600 opacity-50 text-white cursor-not-allowed"
+                  : "bg-purple-600 hover:bg-purple-700 text-white"
+                } ${!termsAccepted && !loading ? "opacity-50" : ""}`}
+              disabled={!termsAccepted || loading}
+            >
+              {loading ? "Loading..." : "Register"}
+            </button>
+          </form>
         </div>
       </div>
     </div>

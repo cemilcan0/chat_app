@@ -36,7 +36,7 @@ const Chat: React.FC = () => {
                         : 'bg-white mr-auto'
                     }`}
                   >
-                    <p>{message.text}</p>
+                    <p>{typeof message.text === 'string' ? message.text : 'Invalid message'}</p>
                   </div>
                 ))
               )}
