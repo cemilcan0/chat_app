@@ -68,7 +68,7 @@ const Chat: React.FC = () => {
                     </div>
                     <div className="relative">
                       <img
-                        src={`http://localhost:8000${user?.photo}` || dummyPhoto}
+                        src={`${process.env.WEB_API_URL}${user?.photo}` || dummyPhoto}
                         alt={user?.username}
                         className="w-20 h-20 rounded-full border-2"
                       />

@@ -26,7 +26,7 @@ const Home: React.FC = () => {
         <div className="flex m-8 items-center">
           {/* Profil Fotoğrafı */}
           <div className="border-2 border-[#5C52C7] rounded-full overflow-hidden">
-            <img src={`http://localhost:8000${user?.photo}` || photo} className="w-20 h-20" alt="Profile" />
+            <img src={`${process.env.WEB_API_URL}${user?.photo}` || photo} className="w-20 h-20" alt="Profile" />
           </div>
 
           {/* Ad ve Mesaj */}
