@@ -94,7 +94,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
 
   connectMessageSocket: (username) => {
     console.log('Connecting to WebSocket for messages...');
-    const socket = new WebSocket(`${process.env.WEBSOCKET_URL}/ws/message/${username}/`);
+    const socket = new WebSocket(`wss://testapi.berat-dogan.com/ws/message/${username}/`);
 
     socket.onopen = () => {
       console.log('Message WebSocket connected');
@@ -138,7 +138,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
 
   connectNotificationSocket: () => {
     console.log('Connecting to WebSocket for notifications...');
-    const notificationSocket = new WebSocket(`${process.env.WEBSOCKET_URL}/ws/notification/`);
+    const notificationSocket = new WebSocket(`wss://testapi.berat-dogan.com/ws/notification/`);
 
     notificationSocket.onopen = () => {
       console.log('Notification WebSocket connected');

@@ -5,7 +5,7 @@ import axios, {
 } from "axios";
 
 const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.WEB_API_URL,
+  baseURL: 'https://testapi.berat-dogan.com',
   headers: {
     "Content-Type": "application/json",
   },
