@@ -37,22 +37,47 @@ const Chat: React.FC = () => {
 
   return (
     <div className="flex h-full w-2/3">
-      <div className={`flex flex-col bg-gray-200 transition-all duration-300 w-full`}>
+      <div className={`flex flex-col transition-all duration-300 w-full bg-[#1A1A22]`}>
         {activeChat ? (
           <>
-            <div className="py-3 px-5 bg-blue-500 text-white shadow-md w-full flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold text-xl">{activeChat.name}</h2>
-                <p className="text-sm text-white/80">{activeChat.status}</p>
-              </div>
-
-              <button
-                className="px-4 py-2 bg-white text-blue-500 rounded-md"
-                onClick={() => setIsCalling(!isCalling)}
+            <div className="relative">
+              {/* Başlık Çubuğu */}
+              <div
+                className="absolute top-0 left-0 right-0 bg-[#202126] bg-opacity-75 shadow-md flex items-center justify-between z-10 px-5 py-3"
+                style={{
+                  backdropFilter: 'blur(10px)', // Arka plan bulanıklığı
+                  WebkitBackdropFilter: 'blur(10px)', // Safari desteği
+                }}
               >
-                <img src={phone} alt="Phone Call" className="w-5 h-5" />
-              </button>
+                {/* Kullanıcı Bilgileri */}
+                <div className="flex items-center gap-4">
+                  <img
+                    src={activeChat.photo || dummyPhoto}
+                    alt={activeChat.name}
+                    className="w-12 h-12 rounded-full border-2 border-gray-600"
+                  />
+                  <div>
+                    <h2 className="font-semibold text-lg text-white">{activeChat.name}</h2>
+                    <p className="text-sm text-gray-400">
+                      {activeChat.status || 'No status available'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Aksiyon Butonları */}
+                <div className="flex items-center gap-3">
+                  <button className="p-2 bg-gray-600 bg-opacity-30 hover:bg-opacity-50 rounded-full transition-all duration-200">
+                    <img src={phone} alt="Phone Call" className="w-5 h-5 text-white" />
+                  </button>
+                  <button className="p-2 bg-gray-600 bg-opacity-30 hover:bg-opacity-50 rounded-full transition-all duration-200">
+                    <img src={camera} alt="Video Call" className="w-5 h-5 text-white" />
+                  </button>
+                </div>
+              </div>
             </div>
+
+
+
 
             {isCalling && (
               <div className="py-2 px-5 bg-gray-900 text-white flex items-center justify-between">
@@ -94,16 +119,16 @@ const Chat: React.FC = () => {
               </div>
             )}
 
-            <div className="flex-1 p-4 overflow-y-auto bg-gray-100">
+            <div className="flex-1 p-4 overflow-y-auto">
               {activeChat.messages.length === 0 ? (
                 <div className="text-gray-500 text-center">No messages yet.</div>
               ) : (
                 activeChat.messages.map((message, index) => (
                   <div
                     key={index}
-                    className={`p-2 my-2 rounded-lg w-fit max-w-[45%] ${message.sender === user?.username
-                      ? 'bg-blue-500 ml-auto text-white'
-                      : 'bg-white mr-auto'
+                    className={`p-3 my-2 rounded-full w-fit max-w-[45%] ${message.sender === user?.username
+                      ? 'bg-[#86DFF3] ml-auto text-black'
+                      : 'bg-[#2C2B39] mr-auto text-white'
                       }`}
                   >
                     <p>{typeof message.text === 'string' ? message.text : 'Invalid message'}</p>
@@ -113,12 +138,12 @@ const Chat: React.FC = () => {
               {/* Ref point for scrolling */}
               <div ref={messagesEndRef} />
             </div>
-            <div className="p-4 flex items-center gap-2 bg-white border-t border-gray-300">
+            <div className="p-4 flex items-center gap-2 bg-[#1A1A22] border-t border-gray-600">
               <form className="flex w-full" onSubmit={handleSubmit}>
                 <input
                   type="text"
                   placeholder="Type a message..."
-                  className="flex-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300 focus:outline-none"
+                  className="flex-1 p-2 border border-gray-600 rounded-md focus:ring focus:ring-blue-300 focus:outline-none bg-[#2C2B39] text-white"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                 />
