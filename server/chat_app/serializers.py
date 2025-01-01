@@ -15,6 +15,22 @@ from rest_framework import serializers
 from chat_app.models import ChatGroup, GroupMessage
 
 
+class BaseUserSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    photo = serializers.ImageField(source='profile.photo')
+    online = serializers.BooleanField(source='profile.online')
+    status = serializers.CharField(source='profile.status')
+
+    class Meta:
+        model = User
+        fields = ('name', 'username', 'photo', 'online', 'status')
+
+    def get_name(self, obj):
+        if obj.first_name:
+            return obj.get_full_name()
+        return obj.username
+
+
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatGroup
@@ -97,21 +113,11 @@ class UsersWithMessageSerializer(serializers.ModelSerializer):
         return serializer.data
 
 
-class UserSerializer(serializers.ModelSerializer):
-    name = serializers.SerializerMethodField()
-    photo = serializers.ImageField(source='profile.photo')
-    online = serializers.BooleanField(source='profile.online')
-    status = serializers.CharField(source='profile.status')
+class UserSerializer(BaseUserSerializer):
     messages = serializers.SerializerMethodField()
 
-    class Meta:
-        model = User
-        fields = ('name', 'username', 'photo', 'online', 'status', 'messages')
-
-    def get_name(self, obj):
-        if obj.first_name:
-            return obj.get_full_name()
-        return obj.username
+    class Meta(BaseUserSerializer.Meta):
+        fields = BaseUserSerializer.Meta.fields + ('messages',)
 
     def get_messages(self, obj):
         return []
@@ -144,26 +150,36 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
 class FriendsWithLastMessageSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
-    photo = serializers.ImageField(source='to_user.profile.photo')
-    online = serializers.BooleanField(source='to_user.profile.online')
-    status = serializers.CharField(source='to_user.profile.status')
-    username = serializers.CharField(source='to_user.username')
+    photo = serializers.ImageField(source='profile.photo')
+    online = serializers.BooleanField(source='profile.online')
+    status = serializers.CharField(source='profile.status')
+    messages = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
 
     class Meta:
-        model = Friendship
-        fields = ('name', 'username', 'photo',
-                  'online', 'status', 'last_message')
+        model = User
+        fields = ('name', 'username', 'photo', 'online',
+                  'status', 'messages', 'last_message')
 
     def get_name(self, obj):
-        if obj.to_user.first_name:
-            return f"{obj.to_user.first_name} {obj.to_user.last_name}"
-        return obj.to_user.username
+        if obj.first_name:
+            return f"{obj.first_name} {obj.last_name}"
+        return obj.username
+
+    def get_messages(self, obj):
+        # Mesajları getir
+        messages = Message.objects.filter(
+            Q(sender=obj, receiver=self.context['request'].user) |
+            Q(sender=self.context['request'].user, receiver=obj)
+        ).order_by('date_time')
+        serializer = MessageModelSerializer(messages, many=True)
+        return serializer.data
 
     def get_last_message(self, obj):
+        # Son mesajı getir
         last_message = Message.objects.filter(
-            Q(sender=obj.to_user, receiver=self.context['request'].user) |
-            Q(sender=self.context['request'].user, receiver=obj.to_user)
+            Q(sender=obj, receiver=self.context['request'].user) |
+            Q(sender=self.context['request'].user, receiver=obj)
         ).order_by('-date_time').first()
         if last_message:
             return {

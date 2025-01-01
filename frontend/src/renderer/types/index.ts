@@ -27,8 +27,13 @@ export interface ChatStateType {
   user: UserType | null;
   socket: WebSocket | null;
   notificationSocket: WebSocket | null;
+  friendRequests: UserType[];
   fetchChats: () => Promise<void>;
+  fetchFriendRequests: () => Promise<void>;
   sendMessage: (text: string, receiver: string) => void;
+  addFriend: (username: string) => void;
+  acceptFriendRequest: (username: string) => void;
+  declineFriendRequest: (username: string) => void;
   connectMessageSocket: (username: string) => void;
   connectNotificationSocket: () => void;
   setActiveChat: (chat: ChatType | null) => void;

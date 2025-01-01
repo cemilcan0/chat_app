@@ -4,10 +4,11 @@ import dummyPhoto from '../../../assets/images/photo.jpg';
 import { MessageType } from '../types';
 
 const Friends: React.FC = () => {
-  const { chats, fetchChats, setActiveChat, activeChat, user } = useChatStore();
+  const { chats, fetchChats, setActiveChat, activeChat, user, friendRequests, fetchFriendRequests } = useChatStore();
 
   useEffect(() => {
     fetchChats();
+    fetchFriendRequests();
   }, [fetchChats]);
 
   return (

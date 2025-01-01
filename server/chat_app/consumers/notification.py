@@ -5,7 +5,6 @@ from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 
 
 class NewUserConsumer(WebsocketConsumer):
-
     def connect(self):
         self.room_name = 'new_user'
         self.room_group_name = 'notification'
@@ -24,13 +23,6 @@ class NewUserConsumer(WebsocketConsumer):
             }
         )
 
-    def new_user_notification(self, event):
-        message = event['message']
-        self.send(text_data=json.dumps({
-            'message': message,
-            'status': 'new_user'
-        }))
-
     def user_online(self, event):
         message = event['message']
         self.send(text_data=json.dumps({
@@ -43,3 +35,17 @@ class NewUserConsumer(WebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
+
+    def new_friend_request(self, event):
+        message = event['message']
+        self.send(text_data=json.dumps({
+            'type': 'new_friend_request',
+            'message': message
+        }))
+
+    def friend_request_accepted(self, event):
+        message = event['message']
+        self.send(text_data=json.dumps({
+            'type': 'friend_request_accepted',
+            'message': message
+        }))

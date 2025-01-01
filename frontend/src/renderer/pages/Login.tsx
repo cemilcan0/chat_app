@@ -37,13 +37,6 @@ const Login: React.FC = () => {
       });
   };
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get("ref") === "register") {
-      console.log("Registration successful! You can now log in.");
-    }
-  }, [location]);
-
   return (
     <div className="flex min-h-screen bg-[#2B2738] relative">
       <div

@@ -8,28 +8,34 @@ const useChatStore = create<ChatStateType>((set, get) => ({
   user: null,
   socket: null,
   notificationSocket: null,
+  friendRequests: [],
 
-  // Tüm chat'leri API'den çekmek için
   fetchChats: async () => {
     try {
-      const response = await apiClient.get('/chat-app/users/');
-      console.log('Chats fetched:', response.data);
-  
-      // Her chat için okunmamış mesajları say
+      const response = await apiClient.get('/chat-app/friends/');
+
       const chatsWithUnread = response.data.map((chat: ChatType) => {
         const unreadCount = chat.messages.filter((message: MessageType) => !message.read).length;
-        return { ...chat, unreadCount }; // unreadCount'u her chat'e ekle
+        return { ...chat, unreadCount };
       });
 
-      console.log('Chats with unread:', chatsWithUnread);
-  
       set({ chats: chatsWithUnread });
     } catch (error) {
       console.error('Error fetching chats:', error);
     }
   },
 
-  // Mesaj göndermek için
+  fetchFriendRequests: async () => {
+    try {
+      const response = await apiClient.get('/chat-app/pending-friend-requests/');
+      console.log('Pending friend requests fetched:', response.data);
+
+      set({ friendRequests: response.data });
+    } catch (error) {
+      console.error('Error fetching pending friend requests:', error);
+    }
+  },
+
   sendMessage: async (text, receiver) => {
     const { socket, user, activeChat, chats } = get();
 
@@ -82,19 +88,52 @@ const useChatStore = create<ChatStateType>((set, get) => ({
   },
 
   loadUser: () => {
-    console.log('Loading user from localStorage...');
     const userData = localStorage.getItem('user');
     if (userData) {
-      console.log('User loaded:', JSON.parse(userData));
       set({ user: JSON.parse(userData) });
     } else {
       console.warn('No user found in localStorage!');
     }
   },
 
+  addFriend: async (username) => {
+    try {
+      const response = await apiClient.post('/chat-app/send-friend-request/', { username });
+      console.log('Friend request sent:', response.data);
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+    }
+  },
+
+  acceptFriendRequest: async (username) => {
+    try {
+      const response = await apiClient.post('/chat-app/accept-friend-request/', { username });
+      console.log('Friend request accepted:', response.data);
+
+      set((state) => ({
+        friendRequests: state.friendRequests.filter((request) => request.username !== username),
+      }));
+    } catch (error) {
+      console.error('Error accepting friend request:', error);
+    }
+  },
+
+  declineFriendRequest: async (username) => {
+    try {
+      const response = await apiClient.post('/chat-app/decline-friend-request/', { username });
+      console.log('Friend request declined:', response.data);
+
+      set((state) => ({
+        friendRequests: state.friendRequests.filter((request) => request.username !== username),
+      }));
+    } catch (error) {
+      console.error('Error declining friend request:', error);
+    }
+  },
+
   connectMessageSocket: (username) => {
-    console.log('Connecting to WebSocket for messages...');
     const socket = new WebSocket(`wss://testapi.berat-dogan.com/ws/message/${username}/`);
+    // const socket = new WebSocket(`ws://localhost:8000/ws/message/${username}/`);
 
     socket.onopen = () => {
       console.log('Message WebSocket connected');
@@ -102,7 +141,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('Received message from WebSocket:', data);
+      console.log('WebSocket message received:', data);
 
       if (data.status === 'new_message') {
         const newMessage = {
@@ -129,7 +168,6 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     };
 
     socket.onclose = () => {
-      console.log('Message WebSocket disconnected');
       set({ socket: null });
     };
 
@@ -137,8 +175,8 @@ const useChatStore = create<ChatStateType>((set, get) => ({
   },
 
   connectNotificationSocket: () => {
-    console.log('Connecting to WebSocket for notifications...');
     const notificationSocket = new WebSocket(`wss://testapi.berat-dogan.com/ws/notification/`);
+    // const notificationSocket = new WebSocket(`ws://localhost:8000/ws/notification/`);
 
     notificationSocket.onopen = () => {
       console.log('Notification WebSocket connected');
@@ -146,14 +184,12 @@ const useChatStore = create<ChatStateType>((set, get) => ({
 
     notificationSocket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('Received notification from WebSocket:', data);
       if (data.status === 'new_user') {
         console.log('Processing new user notification:', data.message);
       }
     };
 
     notificationSocket.onclose = () => {
-      console.log('Notification WebSocket disconnected');
       set({ notificationSocket: null });
     };
 
