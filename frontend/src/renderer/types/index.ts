@@ -40,9 +40,4 @@ export interface ChatStateType {
   loadUser: () => void;
   startCall: (peerId: string, receiver: string) => void;
   endCall: (peerId: string, receiver: string) => void;
-  peerConnection: RTCPeerConnection | null;
-  localStream: MediaStream | null;
-  remoteStream: MediaStream | null;
-  acceptCall: (offer: RTCSessionDescriptionInit, sender: string) => void;
-  rejectCall: (peerId: string, sender: string) => void;
 }
