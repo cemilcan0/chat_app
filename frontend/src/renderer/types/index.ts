@@ -38,4 +38,6 @@ export interface ChatStateType {
   connectNotificationSocket: () => void;
   setActiveChat: (chat: ChatType | null) => void;
   loadUser: () => void;
+  startCall: (peerId: string, receiver: string) => void;
+  endCall: (peerId: string, receiver: string) => void;
 }

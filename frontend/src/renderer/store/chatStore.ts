@@ -10,6 +10,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
   notificationSocket: null,
   friendRequests: [],
 
+  // Chatleri getir
   fetchChats: async () => {
     try {
       const response = await apiClient.get('/chat-app/friends/');
@@ -25,6 +26,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     }
   },
 
+  // Arkadaşlık isteklerini getir
   fetchFriendRequests: async () => {
     try {
       const response = await apiClient.get('/chat-app/pending-friend-requests/');
@@ -36,10 +38,10 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     }
   },
 
+  // Mesaj gönder
   sendMessage: async (text, receiver) => {
     const { socket, user, activeChat, chats } = get();
 
-    // Mesajı WebSocket üzerinden gönder
     if (socket) {
       socket.send(
         JSON.stringify({
@@ -52,7 +54,6 @@ const useChatStore = create<ChatStateType>((set, get) => ({
       console.warn('WebSocket is not connected!');
     }
 
-    // Mesajı backend'e POST isteğiyle gönder
     try {
       const response = await apiClient.post('/chat-app/message/', {
         text: text,
@@ -64,7 +65,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         text: text,
         sender: user?.username || 'unknown',
         date_time: new Date().toISOString(),
-        read: true, // Varsayılan olarak okundu
+        read: true,
       };
 
       const updatedChats = chats.map((chat) =>
@@ -83,10 +84,12 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     }
   },
 
+  // Aktif chati belirle
   setActiveChat: (chat) => {
     set({ activeChat: chat });
   },
 
+  // Kullanıcı bilgilerini yükle
   loadUser: () => {
     const userData = localStorage.getItem('user');
     if (userData) {
@@ -96,6 +99,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     }
   },
 
+  // Arkadaşlık isteği gönder
   addFriend: async (username) => {
     try {
       const response = await apiClient.post('/chat-app/send-friend-request/', { username });
@@ -105,6 +109,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     }
   },
 
+  // Arkadaşlık isteğini kabul et
   acceptFriendRequest: async (username) => {
     try {
       const response = await apiClient.post('/chat-app/accept-friend-request/', { username });
@@ -118,6 +123,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     }
   },
 
+  // Arkadaşlık isteğini reddet
   declineFriendRequest: async (username) => {
     try {
       const response = await apiClient.post('/chat-app/decline-friend-request/', { username });
@@ -131,9 +137,9 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     }
   },
 
+  // Mesaj WebSocket bağlantısını başlat
   connectMessageSocket: (username) => {
     const socket = new WebSocket(`wss://testapi.berat-dogan.com/ws/message/${username}/`);
-    // const socket = new WebSocket(`ws://localhost:8000/ws/message/${username}/`);
 
     socket.onopen = () => {
       console.log('Message WebSocket connected');
@@ -164,19 +170,27 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         if (activeChat && activeChat.username === data.message.sender) {
           set({ activeChat: { ...activeChat, messages: [...activeChat.messages, newMessage] } });
         }
+      } else if (data.status === 'new_call') {
+        console.log(`Incoming call from ${data.message.sender}`);
+      } else if (data.status === 'end_call') {
+        console.log(`Call ended by ${data.message.sender}`);
+      } else if (data.type === 'call_request') {
+        // Gelen aramayı console.log ile göster
+        console.log(`Incoming call from ${data.message.sender}, Call Type: ${data.message.callType}`);
       }
     };
 
     socket.onclose = () => {
+      console.log('Message WebSocket disconnected');
       set({ socket: null });
     };
 
     set({ socket });
   },
 
+  // Bildirim WebSocket bağlantısını başlat
   connectNotificationSocket: () => {
     const notificationSocket = new WebSocket(`wss://testapi.berat-dogan.com/ws/notification/`);
-    // const notificationSocket = new WebSocket(`ws://localhost:8000/ws/notification/`);
 
     notificationSocket.onopen = () => {
       console.log('Notification WebSocket connected');
@@ -190,10 +204,57 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     };
 
     notificationSocket.onclose = () => {
+      console.log('Notification WebSocket disconnected');
       set({ notificationSocket: null });
     };
 
     set({ notificationSocket });
+  },
+
+  // Sesli çağrı başlat
+  startCall: async (peerId: string, receiver: string) => {
+    const { socket, user } = get();
+
+    if (!user || !socket) {
+      console.error('User or WebSocket not found!');
+      return;
+    }
+
+    try {
+      // Backend'e çağrı başlatma isteği gönder
+      const response = await apiClient.post('/chat-app/start-call/', {
+        sender: user.username,
+        receiver: receiver,
+        peer_id: peerId,
+      });
+
+      console.log('Call successfully started:', response.data);
+    } catch (error) {
+      console.error('Error starting call:', error);
+    }
+  },
+
+  // Sesli çağrıyı sonlandır
+  endCall: async (peerId: string, receiver: string) => {
+    const { socket, user } = get();
+
+    if (!user || !socket) {
+      console.error('User or WebSocket not found!');
+      return;
+    }
+
+    try {
+      // Backend'e çağrı sonlandırma isteği gönder
+      const response = await apiClient.post('/chat-app/end-call/', {
+        sender: user.username,
+        receiver: receiver,
+        peer_id: peerId,
+      });
+
+      console.log('Call successfully ended:', response.data);
+    } catch (error) {
+      console.error('Error ending call:', error);
+    }
   },
 }));
 
