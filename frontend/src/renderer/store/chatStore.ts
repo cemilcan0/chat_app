@@ -9,6 +9,9 @@ const useChatStore = create<ChatStateType>((set, get) => ({
   socket: null,
   notificationSocket: null,
   friendRequests: [],
+  peerConnection: null,
+  localStream: null,
+  remoteStream: null,
 
   // Chatleri getir
   fetchChats: async () => {
@@ -221,6 +224,42 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     }
 
     try {
+      // RTCPeerConnection oluştur
+      const peerConnection = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }], // Google STUN server
+      });
+
+      // Yerel medya akışını al ve PeerConnection'a ekle
+      const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
+
+      // ICE Candidate'larını yakala ve WebSocket ile gönder
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.send(
+            JSON.stringify({
+              type: 'ice_candidate',
+              candidate: event.candidate,
+              receiver: receiver,
+            })
+          );
+        }
+      };
+
+      // Offer oluştur ve WebSocket üzerinden gönder
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+
+      socket.send(
+        JSON.stringify({
+          type: 'offer',
+          offer: offer,
+          receiver: receiver,
+        })
+      );
+
+      console.log('Offer sent:', offer);
+
       // Backend'e çağrı başlatma isteği gönder
       const response = await apiClient.post('/chat-app/start-call/', {
         sender: user.username,
@@ -228,7 +267,10 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         peer_id: peerId,
       });
 
-      console.log('Call successfully started:', response.data);
+      console.log('Call successfully started in backend:', response.data);
+
+      // Store'a peerConnection ve localStream'i kaydet
+      set({ peerConnection, localStream });
     } catch (error) {
       console.error('Error starting call:', error);
     }
@@ -254,6 +296,96 @@ const useChatStore = create<ChatStateType>((set, get) => ({
       console.log('Call successfully ended:', response.data);
     } catch (error) {
       console.error('Error ending call:', error);
+    }
+  },
+
+  // Gelen çağrıyı kabul et
+  acceptCall: async (offer: RTCSessionDescriptionInit, sender: string) => {
+    const { socket } = get();
+
+    try {
+      // RTCPeerConnection oluştur
+      const peerConnection = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }], // Google STUN server
+      });
+
+      // Yerel medya akışını al ve PeerConnection'a ekle
+      const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
+      set({ localStream });
+
+      // Gelen offer'ı ayarla
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+      // Answer oluştur ve WebSocket üzerinden gönder
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+
+      socket?.send(
+        JSON.stringify({
+          type: 'answer',
+          answer: answer,
+          receiver: sender,
+        })
+      );
+
+      // ICE Candidate'larını yakala ve WebSocket ile gönder
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket?.send(
+            JSON.stringify({
+              type: 'ice_candidate',
+              candidate: event.candidate,
+              receiver: sender,
+            })
+          );
+        }
+      };
+
+      // Remote stream'i ayarla
+      peerConnection.ontrack = (event) => {
+        set((state) => ({
+          ...state, // Mevcut state'i genişlet
+          remoteStream: state.remoteStream
+            ? new MediaStream([...state.remoteStream.getTracks(), ...event.streams[0].getTracks()])
+            : event.streams[0], // Remote stream'i güncelle
+        }));
+      };
+
+      set({ peerConnection });
+    } catch (error) {
+      console.error('Error accepting call:', error);
+    }
+  },
+
+  // Gelen çağrıyı reddet
+  rejectCall: async (peerId: string, sender: string) => {
+    const { socket, user } = get();
+
+    if (!user || !socket) {
+      console.error('User or WebSocket not found!');
+      return;
+    }
+
+    try {
+      // Backend'e çağrı reddetme isteği gönder
+      const response = await apiClient.post('/chat-app/end-call/', {
+        sender: user.username,
+        receiver: sender,
+        peer_id: peerId,
+      });
+
+      console.log('Call successfully rejected in backend:', response.data);
+
+      // Çağrıyı reddettiğini WebSocket üzerinden bildir
+      socket.send(
+        JSON.stringify({
+          type: 'reject_call',
+          receiver: sender,
+        })
+      );
+    } catch (error) {
+      console.error('Error rejecting call:', error);
     }
   },
 }));

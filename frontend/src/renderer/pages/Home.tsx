@@ -13,7 +13,7 @@ const Home: React.FC = () => {
     return userData ? JSON.parse(userData) as UserType : null;
   })();
 
-  const { socket } = useChatStore();
+  const { socket, acceptCall, rejectCall } = useChatStore(); // Yeni fonksiyonları ekledik
   const [incomingCall, setIncomingCall] = useState<null | any>(null);
 
   const handleLogout = () => {
@@ -38,16 +38,30 @@ const Home: React.FC = () => {
     }
   }, [socket]);
 
-  const handleAcceptCall = () => {
+  const handleAcceptCall = async () => {
     console.log('Call accepted:', incomingCall);
-    // Burada aramayı başlatabiliriz (örneğin WebRTC ile)
-    setIncomingCall(null);
+
+    if (!incomingCall) return;
+
+    try {
+      await acceptCall(incomingCall.data.peer_id, incomingCall.data.sender); // Accept Call fonksiyonunu çağırıyoruz
+      setIncomingCall(null); // Popup'ı kapatıyoruz
+    } catch (error) {
+      console.error('Error accepting call:', error);
+    }
   };
 
-  const handleRejectCall = () => {
+  const handleRejectCall = async () => {
     console.log('Call rejected:', incomingCall);
-    // Çağrıyı reddetme işlemini burada yapabilirsiniz
-    setIncomingCall(null);
+
+    if (!incomingCall) return;
+
+    try {
+      await rejectCall(incomingCall.data.peer_id, incomingCall.data.sender); // Reject Call fonksiyonunu çağırıyoruz
+      setIncomingCall(null); // Popup'ı kapatıyoruz
+    } catch (error) {
+      console.error('Error rejecting call:', error);
+    }
   };
 
   return (
