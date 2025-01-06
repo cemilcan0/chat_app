@@ -42,7 +42,7 @@ const CallButton: React.FC<CallButtonProps> = ({ icon, altText, receiver, type }
 
       {/* Arama Durumu Gösterimi */}
       {isCalling && (
-        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-5 rounded-lg shadow-lg flex flex-col items-center">
             <p className="text-lg font-semibold text-gray-700">Calling {receiver}...</p>
             <div className="loader mt-4"></div>

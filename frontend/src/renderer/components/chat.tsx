@@ -5,6 +5,7 @@ import camera from '../../../assets/icons/camera.svg';
 import dummyPhoto from '../../../assets/images/photo.jpg';
 import useEscKeyListener from '../hooks/useEscKeyListener';
 import CallButton from './call-button';
+import { getCurrentTime } from '../utils/helpers';
 
 const Chat: React.FC = () => {
   useEscKeyListener();
@@ -80,25 +81,30 @@ const Chat: React.FC = () => {
           </div>
 
           {/* Mesaj Alanı */}
-          <div className="flex-1 p-4 overflow-y-auto">
+          <div className="flex-1 p-2 overflow-y-auto bg-gray-50 dark:bg-gray-900">
             {activeChat.messages.length === 0 ? (
-              <div className="text-gray-500 text-center">No messages yet.</div>
+              <div className="text-gray-500 text-center mt-2">No messages yet.</div>
             ) : (
               activeChat.messages.map((message, index) => (
                 <div
                   key={index}
-                  className={`p-3 my-2 rounded-full w-fit max-w-[45%] ${message.sender === user?.username
-                      ? 'bg-[#86DFF3] ml-auto text-black'
+                  className={`p-2 my-1 rounded-md w-fit min-w-[15%] max-w-[35%] ${message.sender === user?.username
+                      ? 'bg-[#075E54] ml-auto text-white'
                       : 'bg-[#2C2B39] mr-auto text-white'
                     }`}
                 >
-                  <p>{typeof message.text === 'string' ? message.text : 'Invalid message'}</p>
+                  <p className="break-words text-sm">{typeof message.text === 'string' ? message.text : 'Invalid message'}</p>
+                  <p className="text-xs text-gray-400 text-right mt-1">
+                    {typeof message.date_time === 'string' ? getCurrentTime(message.date_time) : ''}
+                  </p>
                 </div>
               ))
             )}
             {/* Ref point for scrolling */}
             <div ref={messagesEndRef} />
           </div>
+
+
 
           {/* Mesaj Gönderme */}
           <div className="p-4 flex items-center gap-2 bg-[#1A1A22] border-t border-gray-600">

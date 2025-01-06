@@ -14,10 +14,7 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 };
 
 export default function App() {
-  const loadUser = useChatStore((state) => state.loadUser);
-  const connectMessageSocket = useChatStore((state) => state.connectMessageSocket);
-  const connectNotificationSocket = useChatStore((state) => state.connectNotificationSocket);
-  const user = useChatStore((state) => state.user);
+  const { loadUser, connectMessageSocket, connectNotificationSocket, user } = useChatStore();
 
   useEffect(() => {
     loadUser();
@@ -25,8 +22,8 @@ export default function App() {
 
   useEffect(() => {
     if (user) {
-      connectMessageSocket(user.username); // Kullanıcı adı ile bağlan
-      connectNotificationSocket(); // Bildirimler için bağlan
+      connectMessageSocket(user.username);
+      connectNotificationSocket();
     }
   }, [user, connectMessageSocket, connectNotificationSocket]);
 
