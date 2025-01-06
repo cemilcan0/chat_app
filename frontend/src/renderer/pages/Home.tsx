@@ -8,74 +8,51 @@ import AddFriend from '../components/add-friend';
 import useChatStore from '../store/chatStore';
 
 const Home: React.FC = () => {
-  const { incomingCall, setIncomingCall } = useChatStore();
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-
   const user: UserType | null = (() => {
-    const userData = localStorage.getItem('user');
-    return userData ? (JSON.parse(userData) as UserType) : null;
+    const userData = localStorage.getItem("user");
+    return userData ? JSON.parse(userData) as UserType : null;
   })();
 
-  useEffect(() => {
-    console.log('Incoming call:', incomingCall);
-  }, [incomingCall]);
+  const { socket } = useChatStore();
+  const [incomingCall, setIncomingCall] = useState<null | any>(null);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     window.location.reload();
   };
 
-  const handleAcceptCall = async () => {
-    console.log('Call accepted:', incomingCall);
-    if (!incomingCall) return;
+  // WebSocket'ten gelen çağrıyı dinleme
+  useEffect(() => {
+    if (socket) {
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
 
-    try {
-      // Yerel ses ve video akışını al
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      setLocalStream(stream);
+        if (data.status === 'new_call') {
+          console.log('Incoming call:', data);
 
-      const audioElement = document.getElementById('local-audio') as HTMLAudioElement;
-      if (audioElement) {
-        audioElement.srcObject = stream;
-        audioElement.muted = true; // Yerel sesi mikrofondan oynatma
-        audioElement.play();
-      }
-
-      // WebRTC bağlantısını başlat (useChatStore içindeki `acceptCall` fonksiyonu)
-      await useChatStore.getState().acceptCall(incomingCall.offer, incomingCall.sender);
-
-      // Remote stream'ı dinle ve oynat
-      const peerConnection = useChatStore.getState().peerConnection;
-      if (peerConnection) {
-        peerConnection.ontrack = (event) => {
-          const remoteStream = new MediaStream();
-          event.streams[0].getTracks().forEach((track) => remoteStream.addTrack(track));
-          setRemoteStream(remoteStream);
-
-          const remoteAudioElement = document.getElementById('remote-audio') as HTMLAudioElement;
-          if (remoteAudioElement) {
-            remoteAudioElement.srcObject = remoteStream;
-            remoteAudioElement.play();
-          }
-        };
-      }
-
-      setIncomingCall(null); // Gelen çağrıyı sıfırla
-    } catch (error) {
-      console.error('Error accepting call:', error);
+          // Gelen çağrıyı popup için state'e kaydet
+          setIncomingCall(data.message);
+        }
+      };
     }
+  }, [socket]);
+
+  const handleAcceptCall = () => {
+    console.log('Call accepted:', incomingCall);
+    // Burada aramayı başlatabiliriz (örneğin WebRTC ile)
+    setIncomingCall(null);
   };
 
   const handleRejectCall = () => {
     console.log('Call rejected:', incomingCall);
+    // Çağrıyı reddetme işlemini burada yapabilirsiniz
     setIncomingCall(null);
   };
 
   return (
     <div className="flex h-screen">
-      <div className="w-1/3 bg-[#F3F5F7] border-r border-gray-300 flex flex-col">
+      <div className="w-1/4 bg-[#F3F5F7] border-r border-gray-300 flex flex-col">
         <div className="flex px-6 py-7 items-center">
           <div className="border-2 border-[#5C52C7] rounded-full overflow-hidden">
             <img
@@ -86,9 +63,9 @@ const Home: React.FC = () => {
           </div>
 
           <div className="p-5 flex flex-col items-start">
-            <p className="text-[#5C52C7] font-bold text-lg">{user?.name || 'Guest User'}</p>
-            <p className="text-xs text-gray-500 font-bold">{user?.username || 'guest_user'}</p>
-            <p className="text-xs text-gray-500 font-bold">{user?.status || 'No status'}</p>
+            <p className="text-[#5C52C7] font-bold text-lg">{user?.name || "Guest User"}</p>
+            <p className="text-xs text-gray-500 font-bold">{user?.username || "guest_user"}</p>
+            <p className="text-xs text-gray-500 font-bold">{user?.status || "No status"}</p>
           </div>
 
           <button className="ml-auto mr-8" onClick={handleLogout}>
@@ -136,10 +113,6 @@ const Home: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Ses ve Video Akışı */}
-      <audio id="local-audio" className="hidden"></audio>
-      <audio id="remote-audio" className="hidden"></audio>
     </div>
   );
 };
