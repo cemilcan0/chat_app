@@ -243,7 +243,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
       });
   
-      // Yerel medya akışını ekle
+      // Yerel medya akışını al
       const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
   
@@ -260,25 +260,16 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         }
       };
   
-      // Offer oluştur ve WebSocket üzerinden gönder
+      // Offer oluştur
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
-  
-      socket.send(
-        JSON.stringify({
-          type: 'offer',
-          offer,
-          receiver,
-        })
-      );
-  
-      console.log('Offer sent:', offer);
   
       // Backend'e çağrı başlatma isteği gönder
       const response = await apiClient.post('/chat-app/start-call/', {
         sender: user.username,
         receiver,
         peer_id: peerId,
+        offer, // offer bilgisi gönderiliyor
       });
   
       console.log('Call successfully started:', response.data);

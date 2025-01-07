@@ -41,7 +41,8 @@ class MessageConsumer(WebsocketConsumer):
         message = event['message']
         self.send(text_data=json.dumps({
             'message': message,
-            'status': 'new_call'
+            'status': 'new_call',
+            'offer': message.get('offer'),  # offer bilgisi
         }))
 
     def end_call(self, event):

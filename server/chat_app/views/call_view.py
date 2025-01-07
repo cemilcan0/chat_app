@@ -15,6 +15,8 @@ class StartCallSerializer(serializers.Serializer):
     receiver = serializers.SlugField()
     sender = serializers.SlugField()
     peer_id = serializers.CharField()
+    offer = serializers.JSONField()
+    sdp = serializers.JSONField(required=False)
 
 
 class StartCall(APIView):
@@ -31,12 +33,12 @@ class StartCall(APIView):
                     'type': 'new_call',
                     'message': {
                         'data': serializer.validated_data,
+                        'offer': serializer.validated_data['offer'],  # offer'ı ekliyoruz
                         'display': UserSerializer(sender_user, context={'request': request}).data
                     }
                 }
             )
-            print('all good')
-            return Response({'hello': 'world'})
+            return Response({'status': 'call initiated'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
