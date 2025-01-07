@@ -35,30 +35,40 @@ const Home: React.FC = () => {
     }
 
     try {
+      // Yerel medya akışını al
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setLocalStream(stream);
 
-      const audioElement = document.getElementById('local-audio') as HTMLAudioElement;
-      if (audioElement) {
-        audioElement.srcObject = stream;
-        audioElement.muted = true;
-        audioElement.play();
+      // Yerel videoyu bağla
+      const localVideoElement = document.getElementById('local-video') as HTMLVideoElement;
+      if (localVideoElement) {
+        localVideoElement.srcObject = stream;
+        localVideoElement.muted = true; // Echo'yu önlemek için
+        await localVideoElement.play();
       }
 
+      // Gelen çağrıyı kabul et
       await useChatStore.getState().acceptCall(incomingCall.offer, incomingCall.sender);
 
       const peerConnection = useChatStore.getState().peerConnection;
+
       if (peerConnection) {
-        peerConnection.ontrack = (event) => {
+        // Remote akışı bağla
+        peerConnection.ontrack = async (event) => {
           const remoteStream = new MediaStream();
           event.streams[0].getTracks().forEach((track) => remoteStream.addTrack(track));
           setRemoteStream(remoteStream);
 
-          const remoteAudioElement = document.getElementById('remote-audio') as HTMLAudioElement;
-          if (remoteAudioElement) {
-            remoteAudioElement.srcObject = remoteStream;
-            remoteAudioElement.play();
+          const remoteVideoElement = document.getElementById('remote-video') as HTMLVideoElement;
+          if (remoteVideoElement) {
+            remoteVideoElement.srcObject = remoteStream;
+            await remoteVideoElement.play();
           }
+        };
+
+        // ICE bağlantı durumunu kontrol et
+        peerConnection.oniceconnectionstatechange = () => {
+          console.log('ICE connection state:', peerConnection.iceConnectionState);
         };
       }
 
@@ -136,6 +146,10 @@ const Home: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Ses ve Video Akışı */}
+      <video id="local-video" className="w-1/4" playsInline muted></video>
+      <video id="remote-video" className="w-1/4" playsInline></video>
     </div>
   );
 };

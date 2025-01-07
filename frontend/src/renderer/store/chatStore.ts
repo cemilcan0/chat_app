@@ -180,20 +180,35 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         }
       } else if (data.status === 'new_call') {
         console.log('Incoming call:', data);
-  
+
         // Gelen çağrı bilgilerini düzenle
         const incomingCallData = {
           ...data.message, // `receiver`, `sender`, `peer_id` gibi bilgiler
           offer: data.offer || null, // Eğer `offer` varsa ekle
           sdp: data.sdp || null, // Eğer `sdp` varsa ekle
         };
-  
+
         set({ incomingCall: incomingCallData });
+      } else if (data.type === 'answer') {
+        console.log('Received answer:', data.answer);
+
+        const peerConnection = get().peerConnection;
+        if (peerConnection) {
+          peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
+            .then(() => console.log('Answer set as remote description'))
+            .catch((error) => console.error('Error setting answer as remote description:', error));
+        }
+      } else if (data.type === 'ice_candidate') {
+        console.log('Received ICE candidate:', data.candidate);
+
+        const peerConnection = get().peerConnection;
+        if (peerConnection) {
+          peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
+            .then(() => console.log('ICE candidate added'))
+            .catch((error) => console.error('Error adding ICE candidate:', error));
+        }
       } else if (data.status === 'end_call') {
         console.log(`Call ended by ${data.message.sender}`);
-      } else if (data.type === 'call_request') {
-        // Gelen aramayı console.log ile göster
-        console.log(`Incoming call from ${data.message.sender}, Call Type: ${data.message.callType}`);
       }
     };
 
@@ -231,22 +246,22 @@ const useChatStore = create<ChatStateType>((set, get) => ({
   // Sesli çağrı başlat
   startCall: async (peerId: string, receiver: string) => {
     const { socket, user } = get();
-  
+
     if (!user || !socket) {
       console.error('User or WebSocket not found!');
       return;
     }
-  
+
     try {
       // RTCPeerConnection oluştur
       const peerConnection = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
       });
-  
+
       // Yerel medya akışını al
       const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
-  
+
       // ICE Candidate'larını yakala ve WebSocket ile gönder
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
@@ -259,11 +274,11 @@ const useChatStore = create<ChatStateType>((set, get) => ({
           );
         }
       };
-  
+
       // Offer oluştur
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
-  
+
       // Backend'e çağrı başlatma isteği gönder
       const response = await apiClient.post('/chat-app/start-call/', {
         sender: user.username,
@@ -271,14 +286,14 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         peer_id: peerId,
         offer, // offer bilgisi gönderiliyor
       });
-  
+
       console.log('Call successfully started:', response.data);
-  
+
       set({ peerConnection, localStream });
     } catch (error) {
       console.error('Error starting call:', error);
     }
-  },  
+  },
 
   // Sesli çağrıyı sonlandır
   endCall: async (peerId: string, receiver: string) => {
@@ -308,34 +323,32 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     const { socket } = get();
 
     try {
-      // Gelen offer'ı validate et
-      if (!offer || !offer.type || !offer.sdp) {
-        console.error("Invalid offer object:", offer);
-        throw new Error("Invalid offer object");
-      }
-
       // RTCPeerConnection oluştur
       const peerConnection = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
       });
 
+      // Yerel medya akışını al ve PeerConnection'a ekle
       const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
       set({ localStream });
 
+      // Remote description olarak gelen offer'ı ekle
       await peerConnection.setRemoteDescription(offer);
 
+      // Answer oluştur ve WebSocket ile gönder
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
 
       socket?.send(
         JSON.stringify({
           type: 'answer',
-          answer: answer,
-          receiver: sender,
+          answer: answer, // Oluşturulan yanıt
+          receiver: sender, // Arayan kişi
         })
       );
 
+      // ICE Candidate'ları dinle ve gönder
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
           socket?.send(
@@ -348,6 +361,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         }
       };
 
+      // Remote stream'i dinle
       peerConnection.ontrack = (event) => {
         set((state) => ({
           ...state,
