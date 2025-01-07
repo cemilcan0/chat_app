@@ -38,29 +38,36 @@ export interface CallType {
 }
 
 export interface ChatStateType {
-  chats: ChatType[];
-  activeChat: ChatType | null;
-  user: UserType | null;
-  socket: WebSocket | null;
-  notificationSocket: WebSocket | null;
-  friendRequests: UserType[];
-  incomingCall: any | null;
-  peerConnection: RTCPeerConnection | null;
-  localStream: MediaStream | null;
-  remoteStream: MediaStream | null;
-  fetchChats: () => Promise<void>;
-  fetchFriendRequests: () => Promise<void>;
-  sendMessage: (text: string, receiver: string) => void;
-  addFriend: (username: string) => void;
-  acceptFriendRequest: (username: string) => void;
-  declineFriendRequest: (username: string) => void;
-  connectMessageSocket: (username: string) => void;
-  connectNotificationSocket: () => void;
-  setActiveChat: (chat: ChatType | null) => void;
-  setIncomingCall: (call: any | null) => void;
-  loadUser: () => void;
-  startCall: (peerId: string, receiver: string) => void;
-  endCall: (peerId: string, receiver: string) => void;
-  acceptCall: (offer: RTCSessionDescriptionInit, sender: string) => void;
-  rejectCall: (peerId: string, sender: string) => void;
+  chats: ChatType[]; // Kullanıcının sohbet listesi
+  activeChat: ChatType | null; // Aktif sohbet
+  user: UserType | null; // Kullanıcı bilgileri
+  socket: WebSocket | null; // Mesaj WebSocket bağlantısı
+  notificationSocket: WebSocket | null; // Bildirim WebSocket bağlantısı
+  friendRequests: UserType[]; // Arkadaşlık istekleri
+  incomingCall: {
+    call: any; // Gelen PeerJS çağrı nesnesi
+    accept: () => Promise<void>; // Çağrıyı kabul etme fonksiyonu
+  } | null; // Gelen çağrı bilgileri
+  peer: any | null; // PeerJS nesnesi
+  localStream: MediaStream | null; // Yerel medya akışı (kamera/mikrofon)
+  remoteStream: MediaStream | null; // Uzaktan gelen medya akışı
+
+  // Fonksiyon tanımları
+  fetchChats: () => Promise<void>; // Kullanıcının sohbet listesini getir
+  fetchFriendRequests: () => Promise<void>; // Kullanıcının arkadaşlık isteklerini getir
+  sendMessage: (text: string, receiver: string) => void; // Mesaj gönder
+  addFriend: (username: string) => void; // Arkadaşlık isteği gönder
+  acceptFriendRequest: (username: string) => void; // Arkadaşlık isteğini kabul et
+  declineFriendRequest: (username: string) => void; // Arkadaşlık isteğini reddet
+  connectMessageSocket: (username: string) => void; // Mesaj WebSocket bağlantısını başlat
+  connectNotificationSocket: () => void; // Bildirim WebSocket bağlantısını başlat
+  setActiveChat: (chat: ChatType | null) => void; // Aktif sohbeti belirle
+  loadUser: () => void; // Kullanıcı bilgilerini yükle
+
+  // PeerJS ile ilgili çağrı fonksiyonları
+  connectPeer: (peerId: string) => void; // PeerJS bağlantısını başlat
+  startCall: (receiverPeerId: string) => Promise<void>; // PeerJS ile sesli/video çağrı başlat
+  endCall: () => void; // Çağrıyı sonlandır
+  acceptCall: () => Promise<void>; // Gelen çağrıyı kabul et
+  rejectCall: () => void; // Gelen çağrıyı reddet
 }

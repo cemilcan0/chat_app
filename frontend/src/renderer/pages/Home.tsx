@@ -148,8 +148,12 @@ const Home: React.FC = () => {
       )}
 
       {/* Ses ve Video Akışı */}
-      <video id="local-video" className="w-1/4" playsInline muted></video>
-      <video id="remote-video" className="w-1/4" playsInline></video>
+      {localStream && remoteStream && (
+        <div className="absolute top-16 left-1/4 w-3/4 h-fit flex justify-center items-center gap-5 bg-[#595d61] py-5">
+          <video id="local-video" className="px-2 py-3 bg-black" playsInline muted></video>
+          <video id="remote-video" className="px-2 py-3 bg-black" playsInline></video>
+        </div>
+      )}
     </div>
   );
 };
