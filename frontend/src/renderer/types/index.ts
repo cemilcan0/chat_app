@@ -45,9 +45,14 @@ export interface ChatStateType {
   notificationSocket: WebSocket | null; // Bildirim WebSocket bağlantısı
   friendRequests: UserType[]; // Arkadaşlık istekleri
   incomingCall: {
-    call: any; // Gelen PeerJS çağrı nesnesi
-    accept: () => Promise<void>; // Çağrıyı kabul etme fonksiyonu
-  } | null; // Gelen çağrı bilgileri
+    call: any;
+    accept: () => Promise<void>;
+    display: {
+      photo: string; // Kullanıcı fotoğrafı
+      name: string; // Kullanıcı adı
+      status?: string; // Kullanıcı durumu (opsiyonel)
+    };
+  } | null;
   peer: any | null; // PeerJS nesnesi
   localStream: MediaStream | null; // Yerel medya akışı (kamera/mikrofon)
   remoteStream: MediaStream | null; // Uzaktan gelen medya akışı
@@ -70,4 +75,14 @@ export interface ChatStateType {
   endCall: () => void; // Çağrıyı sonlandır
   acceptCall: () => Promise<void>; // Gelen çağrıyı kabul et
   rejectCall: () => void; // Gelen çağrıyı reddet
+
+  setIncomingCall: (callData: {
+    call: any;
+    accept: () => Promise<void>;
+    display: {
+      photo: string;
+      name: string;
+      status?: string;
+    };
+  } | null) => void;
 }

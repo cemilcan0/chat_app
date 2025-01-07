@@ -9,25 +9,34 @@ interface CallButtonProps {
 }
 
 const CallButton: React.FC<CallButtonProps> = ({ icon, altText, receiver, type }) => {
-  const { startCall, user } = useChatStore();
+  const { connectPeer, startCall, endCall, user } = useChatStore();
   const [isCalling, setIsCalling] = useState(false); // Arama durumu
 
-  const handleCall = () => {
+  const handleCall = async () => {
     if (!user) {
       console.error('User not found');
       return;
     }
 
-    const peerId = `${user.name}-${Date.now()}`; // Kullanıcının ID'si ve zaman damgasını birleştirerek benzersiz bir peerId oluştur
-    console.log(`Starting ${type} call with ${receiver}, peerId: ${peerId}...`);
+    console.log(`Starting ${type} call with ${receiver}...`);
+
+    // PeerJS bağlantısını başlat
+    connectPeer(user.username);
 
     setIsCalling(true); // Aramanın başladığını belirtir
-    startCall(peerId, receiver);
+
+    try {
+      await startCall(receiver);
+    } catch (error) {
+      console.error('Error starting call:', error);
+      setIsCalling(false); // Hata durumunda arama durumunu sıfırla
+    }
   };
 
   const handleCancelCall = () => {
     console.log('Call canceled');
-    setIsCalling(false); // Aramayı iptal eder
+    endCall(); // Çağrıyı sonlandır
+    setIsCalling(false); // Arama durumunu sıfırla
   };
 
   return (

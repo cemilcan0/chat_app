@@ -94,6 +94,11 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     set({ activeChat: chat });
   },
 
+  // Gelen çağrıyı ayarlamak veya sıfırlamak için fonksiyon
+  setIncomingCall: (callData) => {
+    set({ incomingCall: callData });
+  },
+
   // Kullanıcı bilgilerini yükle
   loadUser: () => {
     const userData = localStorage.getItem('user');
@@ -154,27 +159,32 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     peer.on('call', (call) => {
       console.log('Incoming call:', call);
 
+      // Çağrıyı kabul etme işlemi
       const acceptCall = async () => {
         try {
+          // Yerel medya akışını al
           const localStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: true,
           });
           set({ localStream });
 
+          // Çağrıyı cevapla ve yerel akışı gönder
           call.answer(localStream);
 
+          // Uzak akışı al
           call.on('stream', (remoteStream) => {
             console.log('Remote stream received');
             set({ remoteStream });
           });
 
+          // Çağrı sonlandırıldığında
           call.on('close', () => {
             console.log('Call ended');
-            set({ remoteStream: null });
+            set({ remoteStream: null, localStream: null });
           });
 
-          call.on('error', (err) => {
+          call.on('error', (err: Error) => {
             console.error('Error during call:', err);
           });
         } catch (error) {
@@ -182,15 +192,21 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         }
       };
 
+      // Çağrıyı `incomingCall` olarak sakla
       set({
         incomingCall: {
           call,
           accept: acceptCall,
+          display: {
+            photo: 'https://example.com/default-photo.jpg', // Örnek fotoğraf URL'si
+            name: 'Unknown Caller', // Çağrıyı yapan kişinin adı
+            status: 'Incoming call...', // Çağrı durumu
+          },
         },
       });
     });
 
-    peer.on('error', (err) => {
+    peer.on('error', (err: Error) => {
       console.error('PeerJS error:', err);
     });
   },

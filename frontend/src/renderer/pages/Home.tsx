@@ -29,8 +29,9 @@ const Home: React.FC = () => {
 
   const handleAcceptCall = async () => {
     console.log('Call accepted:', incomingCall);
-    if (!incomingCall || !incomingCall.offer) {
-      console.error('Offer information is missing!');
+
+    if (!incomingCall || !incomingCall.call) {
+      console.error('Call information is missing!');
       return;
     }
 
@@ -47,30 +48,27 @@ const Home: React.FC = () => {
         await localVideoElement.play();
       }
 
-      // Gelen çağrıyı kabul et
-      await useChatStore.getState().acceptCall(incomingCall.offer, incomingCall.sender);
+      // PeerJS çağrısını yanıtla
+      incomingCall.call.answer(stream);
 
-      const peerConnection = useChatStore.getState().peerConnection;
+      // Uzak akışı dinle
+      incomingCall.call.on('stream', (remoteStream: MediaStream) => {
+        console.log('Remote stream received');
+        setRemoteStream(remoteStream);
 
-      if (peerConnection) {
-        // Remote akışı bağla
-        peerConnection.ontrack = async (event) => {
-          const remoteStream = new MediaStream();
-          event.streams[0].getTracks().forEach((track) => remoteStream.addTrack(track));
-          setRemoteStream(remoteStream);
+        const remoteVideoElement = document.getElementById('remote-video') as HTMLVideoElement;
+        if (remoteVideoElement) {
+          remoteVideoElement.srcObject = remoteStream;
+          remoteVideoElement.play();
+        }
+      });
 
-          const remoteVideoElement = document.getElementById('remote-video') as HTMLVideoElement;
-          if (remoteVideoElement) {
-            remoteVideoElement.srcObject = remoteStream;
-            await remoteVideoElement.play();
-          }
-        };
-
-        // ICE bağlantı durumunu kontrol et
-        peerConnection.oniceconnectionstatechange = () => {
-          console.log('ICE connection state:', peerConnection.iceConnectionState);
-        };
-      }
+      // Çağrı kapatma durumunu dinle
+      incomingCall.call.on('close', () => {
+        console.log('Call ended');
+        setLocalStream(null);
+        setRemoteStream(null);
+      });
 
       setIncomingCall(null);
     } catch (error) {
@@ -80,7 +78,12 @@ const Home: React.FC = () => {
 
   const handleRejectCall = () => {
     console.log('Call rejected:', incomingCall);
-    setIncomingCall(null);
+
+    if (incomingCall && incomingCall.call) {
+      incomingCall.call.close(); // Çağrıyı sonlandır
+    }
+
+    setIncomingCall(null); // Gelen çağrı bilgisini sıfırla
   };
 
   return (
