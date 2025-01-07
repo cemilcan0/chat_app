@@ -29,24 +29,24 @@ const Home: React.FC = () => {
 
   const handleAcceptCall = async () => {
     console.log('Call accepted:', incomingCall);
-    if (!incomingCall) return;
+    if (!incomingCall || !incomingCall.offer) {
+      console.error('Offer information is missing!');
+      return;
+    }
 
     try {
-      // Yerel ses ve video akışını al
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setLocalStream(stream);
 
       const audioElement = document.getElementById('local-audio') as HTMLAudioElement;
       if (audioElement) {
         audioElement.srcObject = stream;
-        audioElement.muted = true; // Yerel sesi mikrofondan oynatma
+        audioElement.muted = true;
         audioElement.play();
       }
 
-      // WebRTC bağlantısını başlat (useChatStore içindeki `acceptCall` fonksiyonu)
       await useChatStore.getState().acceptCall(incomingCall.offer, incomingCall.sender);
 
-      // Remote stream'ı dinle ve oynat
       const peerConnection = useChatStore.getState().peerConnection;
       if (peerConnection) {
         peerConnection.ontrack = (event) => {
@@ -62,7 +62,7 @@ const Home: React.FC = () => {
         };
       }
 
-      setIncomingCall(null); // Gelen çağrıyı sıfırla
+      setIncomingCall(null);
     } catch (error) {
       console.error('Error accepting call:', error);
     }

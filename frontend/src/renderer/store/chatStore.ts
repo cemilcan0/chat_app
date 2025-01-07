@@ -179,10 +179,16 @@ const useChatStore = create<ChatStateType>((set, get) => ({
           set({ activeChat: { ...activeChat, messages: [...activeChat.messages, newMessage] } });
         }
       } else if (data.status === 'new_call') {
-        console.log(`Incoming call from chatStore ${data}`);
-
-        // Gelen çağrıyı setle
-        set({ incomingCall: data.message });
+        console.log('Incoming call:', data);
+  
+        // Gelen çağrı bilgilerini düzenle
+        const incomingCallData = {
+          ...data.message, // `receiver`, `sender`, `peer_id` gibi bilgiler
+          offer: data.offer || null, // Eğer `offer` varsa ekle
+          sdp: data.sdp || null, // Eğer `sdp` varsa ekle
+        };
+  
+        set({ incomingCall: incomingCallData });
       } else if (data.status === 'end_call') {
         console.log(`Call ended by ${data.message.sender}`);
       } else if (data.type === 'call_request') {
@@ -225,22 +231,22 @@ const useChatStore = create<ChatStateType>((set, get) => ({
   // Sesli çağrı başlat
   startCall: async (peerId: string, receiver: string) => {
     const { socket, user } = get();
-
+  
     if (!user || !socket) {
       console.error('User or WebSocket not found!');
       return;
     }
-
+  
     try {
       // RTCPeerConnection oluştur
       const peerConnection = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }], // Google STUN server
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
       });
-
-      // Yerel medya akışını al ve PeerConnection'a ekle
+  
+      // Yerel medya akışını ekle
       const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
-
+  
       // ICE Candidate'larını yakala ve WebSocket ile gönder
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
@@ -248,38 +254,40 @@ const useChatStore = create<ChatStateType>((set, get) => ({
             JSON.stringify({
               type: 'ice_candidate',
               candidate: event.candidate,
-              receiver: receiver,
+              receiver,
             })
           );
         }
       };
-
+  
       // Offer oluştur ve WebSocket üzerinden gönder
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
-
+  
       socket.send(
         JSON.stringify({
           type: 'offer',
-          offer: offer,
-          receiver: receiver,
+          offer,
+          receiver,
         })
       );
-
+  
       console.log('Offer sent:', offer);
-
+  
       // Backend'e çağrı başlatma isteği gönder
       const response = await apiClient.post('/chat-app/start-call/', {
         sender: user.username,
-        receiver: receiver,
+        receiver,
         peer_id: peerId,
       });
-
+  
       console.log('Call successfully started:', response.data);
+  
+      set({ peerConnection, localStream });
     } catch (error) {
       console.error('Error starting call:', error);
     }
-  },
+  },  
 
   // Sesli çağrıyı sonlandır
   endCall: async (peerId: string, receiver: string) => {
@@ -310,7 +318,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
 
     try {
       // Gelen offer'ı validate et
-      if (!offer || typeof offer !== 'object' || !offer.type || !offer.sdp) {
+      if (!offer || !offer.type || !offer.sdp) {
         console.error("Invalid offer object:", offer);
         throw new Error("Invalid offer object");
       }
@@ -320,15 +328,12 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
       });
 
-      // Yerel medya akışını al ve PeerConnection'a ekle
       const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
       set({ localStream });
 
-      // Gelen offer'ı ayarla
       await peerConnection.setRemoteDescription(offer);
 
-      // Answer oluştur ve WebSocket üzerinden gönder
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
 
@@ -340,7 +345,6 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         })
       );
 
-      // ICE Candidate'larını yakala ve gönder
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
           socket?.send(
@@ -353,7 +357,6 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         }
       };
 
-      // Remote stream'i ayarla
       peerConnection.ontrack = (event) => {
         set((state) => ({
           ...state,
