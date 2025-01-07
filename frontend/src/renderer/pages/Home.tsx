@@ -86,6 +86,14 @@ const Home: React.FC = () => {
     setIncomingCall(null); // Gelen çağrı bilgisini sıfırla
   };
 
+  useEffect(() => {
+    const { user, connectPeer } = useChatStore.getState();
+  
+    if (user) {
+      connectPeer(user.username); // Kullanıcı giriş yaptıysa PeerJS başlatılır
+    }
+  }, []);
+
   return (
     <div className="flex h-screen">
       <div className="w-1/4 bg-[#F3F5F7] border-r border-gray-300 flex flex-col">

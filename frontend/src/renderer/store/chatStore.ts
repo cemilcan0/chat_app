@@ -213,7 +213,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
 
   // Sesli çağrı başlat
   startCall: async (receiverPeerId: string) => {
-    const { peer } = get();
+    const { peer, user } = get();
 
     if (!peer) {
       console.error('PeerJS instance not initialized!');
@@ -221,13 +221,32 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     }
 
     try {
+      // First check if peer is connected
+      if (peer.disconnected) {
+        await new Promise((resolve) => {
+          peer.reconnect();
+          peer.on('open', resolve);
+        });
+      }
+
       const localStream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true,
       });
       set({ localStream });
 
+      // Check if receiver exists before calling
+      const connection = peer.connect(receiverPeerId);
+      await new Promise((resolve, reject) => {
+        connection.on('open', resolve);
+        connection.on('error', reject);
+        // Set a timeout of 5 seconds
+        setTimeout(() => reject(new Error('Connection timeout')), 1000);
+      });
+
+      console.log(`Calling peer: ${receiverPeerId}`);
       const call = peer.call(receiverPeerId, localStream);
+      console.log('Call started:', call);
 
       call.on('stream', (remoteStream: MediaStream) => {
         console.log('Remote stream received');
@@ -245,6 +264,19 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     } catch (error) {
       console.error('Error starting call:', error);
     }
+    
+    if (!user) {
+      throw new Error('User is not logged in');
+    }
+
+    const response = await apiClient.post('/chat-app/start-call/', {
+      sender: user.username,
+      receiver: 'cemo',
+      peer_id: 'cemo-peer-id',
+      offer: 'fsafasfsa', // offer bilgisi gönderiliyor
+    })
+
+    console.log('Call successfully started:', response.data);
   },
 
   // Çağrıyı sonlandır

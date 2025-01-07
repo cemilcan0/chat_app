@@ -13,23 +13,36 @@ const CallButton: React.FC<CallButtonProps> = ({ icon, altText, receiver, type }
   const [isCalling, setIsCalling] = useState(false); // Arama durumu
 
   const handleCall = async () => {
+    const { connectPeer, startCall, user } = useChatStore.getState();
+
     if (!user) {
       console.error('User not found');
       return;
     }
 
-    console.log(`Starting ${type} call with ${receiver}...`);
-
-    // PeerJS bağlantısını başlat
-    connectPeer(user.username);
-
-    setIsCalling(true); // Aramanın başladığını belirtir
+    setIsCalling(true);
 
     try {
+      // Use simple username as peerId
+      if (!useChatStore.getState().peer) {
+        console.log('Initializing PeerJS instance...');
+        await new Promise<void>((resolve) => {
+            connectPeer(`${user.username}-${Date.now()}`);
+          const checkPeer = setInterval(() => {
+            const peer = useChatStore.getState().peer;
+            if (peer?.open) {
+              clearInterval(checkPeer);
+              resolve();
+            }
+          }, 100);
+        });
+      }
+
+      // Proceed with the call
       await startCall(receiver);
     } catch (error) {
-      console.error('Error starting call:', error);
-      setIsCalling(false); // Hata durumunda arama durumunu sıfırla
+      console.error('Call failed:', error);
+      setIsCalling(false);
     }
   };
 

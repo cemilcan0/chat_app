@@ -15,30 +15,30 @@ class StartCallSerializer(serializers.Serializer):
     receiver = serializers.SlugField()
     sender = serializers.SlugField()
     peer_id = serializers.CharField()
-    offer = serializers.JSONField()
-    sdp = serializers.JSONField(required=False)
 
 
 class StartCall(APIView):
-    authentication_classes = [SessionAuthentication, BasicAuthentication, BearerAuthentication]
+    authentication_classes = [SessionAuthentication,
+                              BasicAuthentication, BearerAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request, format=None):
         serializer = StartCallSerializer(data=request.data)
         if serializer.is_valid():
-            sender_user = User.objects.get(username=serializer.validated_data['sender'])
+            sender_user = User.objects.get(
+                username=serializer.validated_data['sender'])
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
                 'chat_%s' % serializer.validated_data['receiver'], {
                     'type': 'new_call',
                     'message': {
                         'data': serializer.validated_data,
-                        'offer': serializer.validated_data['offer'],  # offer'ı ekliyoruz
                         'display': UserSerializer(sender_user, context={'request': request}).data
                     }
                 }
             )
-            return Response({'status': 'call initiated'})
+            print('all good')
+            return Response({'hello': 'world'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
