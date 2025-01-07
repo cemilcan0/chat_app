@@ -309,9 +309,15 @@ const useChatStore = create<ChatStateType>((set, get) => ({
     const { socket } = get();
 
     try {
+      // Gelen offer'ı validate et
+      if (!offer || typeof offer !== 'object' || !offer.type || !offer.sdp) {
+        console.error("Invalid offer object:", offer);
+        throw new Error("Invalid offer object");
+      }
+
       // RTCPeerConnection oluştur
       const peerConnection = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }], // Google STUN server
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
       });
 
       // Yerel medya akışını al ve PeerConnection'a ekle
@@ -320,7 +326,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
       set({ localStream });
 
       // Gelen offer'ı ayarla
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      await peerConnection.setRemoteDescription(offer);
 
       // Answer oluştur ve WebSocket üzerinden gönder
       const answer = await peerConnection.createAnswer();
@@ -334,7 +340,7 @@ const useChatStore = create<ChatStateType>((set, get) => ({
         })
       );
 
-      // ICE Candidate'larını yakala ve WebSocket ile gönder
+      // ICE Candidate'larını yakala ve gönder
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
           socket?.send(
@@ -350,10 +356,10 @@ const useChatStore = create<ChatStateType>((set, get) => ({
       // Remote stream'i ayarla
       peerConnection.ontrack = (event) => {
         set((state) => ({
-          ...state, // Mevcut state'i genişlet
+          ...state,
           remoteStream: state.remoteStream
             ? new MediaStream([...state.remoteStream.getTracks(), ...event.streams[0].getTracks()])
-            : event.streams[0], // Remote stream'i güncelle
+            : event.streams[0],
         }));
       };
 

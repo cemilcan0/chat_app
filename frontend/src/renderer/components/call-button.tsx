@@ -18,8 +18,8 @@ const CallButton: React.FC<CallButtonProps> = ({ icon, altText, receiver, type }
       return;
     }
 
-    const peerId = 'your-peer-id';
-    console.log(`Starting ${type} call with ${receiver}...`);
+    const peerId = `${user.name}-${Date.now()}`; // Kullanıcının ID'si ve zaman damgasını birleştirerek benzersiz bir peerId oluştur
+    console.log(`Starting ${type} call with ${receiver}, peerId: ${peerId}...`);
 
     setIsCalling(true); // Aramanın başladığını belirtir
     startCall(peerId, receiver);
