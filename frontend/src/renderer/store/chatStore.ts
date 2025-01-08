@@ -148,104 +148,147 @@ const useChatStore = create<ChatStateType>((set, get) => ({
   },
 
   // PeerJS bağlantısını başlat
-  connectPeer: (peerId: string) => {
-    const peer = new Peer(peerId);
-
-    peer.on('open', (id) => {
-      console.log('PeerJS connected with ID:', id);
-      set({ peer });
-    });
-
-    peer.on('call', (call) => {
-      console.log('Incoming call:', call);
-
-      // Çağrıyı kabul etme işlemi
-      const acceptCall = async () => {
-        try {
-          // Yerel medya akışını al
-          const localStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
+  connectPeer: (peerId: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      try {
+        // Kendi kullanıcı adınızı Peer ID olarak kullanın
+        const peer = new Peer(peerId); 
+  
+        // PeerJS bağlantısı başarılı olduğunda
+        peer.on('open', (id) => {
+          console.log('PeerJS connected with ID:', id);
+          set({ peer }); // Peer nesnesini kaydet
+          resolve(); // Promise tamamlandı
+        });
+  
+        // Gelen çağrıyı işleme
+        peer.on('call', (call) => {
+          console.log('Incoming call:', call);
+  
+          const acceptCall = async () => {
+            try {
+              // Yerel medya akışını al
+              const localStream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true,
+              });
+              set({ localStream });
+  
+              // Çağrıyı cevapla
+              call.answer(localStream);
+  
+              // Uzak akışı al
+              call.on('stream', (remoteStream) => {
+                console.log('Remote stream received');
+                set({ remoteStream });
+              });
+  
+              call.on('close', () => {
+                console.log('Call ended');
+                set({ remoteStream: null, localStream: null });
+              });
+  
+              call.on('error', (err: Error) => {
+                console.error('Error during call:', err);
+              });
+            } catch (error) {
+              console.error('Error accepting call:', error);
+            }
+          };
+  
+          // Gelen çağrıyı sakla
+          set({
+            incomingCall: {
+              call,
+              accept: acceptCall,
+              display: {
+                photo: 'https://example.com/default-photo.jpg',
+                name: 'Unknown Caller',
+                status: 'Incoming call...',
+              },
+            },
           });
-          set({ localStream });
-
-          // Çağrıyı cevapla ve yerel akışı gönder
-          call.answer(localStream);
-
-          // Uzak akışı al
-          call.on('stream', (remoteStream) => {
-            console.log('Remote stream received');
-            set({ remoteStream });
-          });
-
-          // Çağrı sonlandırıldığında
-          call.on('close', () => {
-            console.log('Call ended');
-            set({ remoteStream: null, localStream: null });
-          });
-
-          call.on('error', (err: Error) => {
-            console.error('Error during call:', err);
-          });
-        } catch (error) {
-          console.error('Error accepting call:', error);
-        }
-      };
-
-      // Çağrıyı `incomingCall` olarak sakla
-      set({
-        incomingCall: {
-          call,
-          accept: acceptCall,
-          display: {
-            photo: 'https://example.com/default-photo.jpg', // Örnek fotoğraf URL'si
-            name: 'Unknown Caller', // Çağrıyı yapan kişinin adı
-            status: 'Incoming call...', // Çağrı durumu
-          },
-        },
-      });
-    });
-
-    peer.on('error', (err: Error) => {
-      console.error('PeerJS error:', err);
+        });
+  
+        // PeerJS bağlantı hatalarını ele al
+        peer.on('error', (err: Error) => {
+          console.error('PeerJS error:', err);
+          set({ peer: null });
+          reject(err); // Hata durumunda promise'i reddet
+        });
+      } catch (error) {
+        console.error('Error initializing PeerJS:', error);
+        reject(error); // Genel hata durumu
+      }
     });
   },
+  
+  
 
   // Sesli çağrı başlat
-  startCall: async (receiverPeerId: string) => {
-    const { peer } = get();
-
+  startCall: async (receiver: string) => {
+    const { peer, localStream } = get();
+  
     if (!peer) {
       console.error('PeerJS instance not initialized!');
       return;
     }
-
+  
     try {
-      const localStream = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true,
       });
-      set({ localStream });
-
-      const call = peer.call(receiverPeerId, localStream);
-
+      set({ localStream: stream });
+  
+      // Logları buraya ekle
+      console.log('Local stream before call:', stream);
+      console.log('Peer instance before call:', peer);
+  
+      const call = peer.call(receiver, stream);
+  
+      if (!call) {
+        console.error('Failed to establish a call with PeerJS.');
+        return;
+      }
+  
       call.on('stream', (remoteStream: MediaStream) => {
-        console.log('Remote stream received');
+        console.log('Remote stream received in startCall:', remoteStream);
         set({ remoteStream });
+  
+        const remoteVideoElement = document.getElementById('remote-video') as HTMLVideoElement;
+        if (remoteVideoElement) {
+          remoteVideoElement.srcObject = remoteStream;
+          remoteVideoElement.play().catch((err) => {
+            console.error('Error playing remote video in startCall:', err);
+          });
+        }
       });
-
+  
       call.on('close', () => {
-        console.log('Call ended');
-        set({ remoteStream: null });
+        console.log('Call ended. Cleaning up streams.');
+        if (localStream) {
+          localStream.getTracks().forEach((track) => track.stop());
+        }
+        set({ localStream: null, remoteStream: null });
       });
-
+  
       call.on('error', (err: Error) => {
         console.error('Error during call:', err);
       });
     } catch (error) {
       console.error('Error starting call:', error);
+  
+      // Hata durumunda akışları temizle
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+      }
+      set({ localStream: null });
     }
   },
+  
+  
+  
 
   // Çağrıyı sonlandır
   endCall: () => {

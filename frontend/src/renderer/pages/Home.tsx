@@ -40,41 +40,56 @@ const Home: React.FC = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setLocalStream(stream);
 
+      console.log('Local stream acquired:', stream); // Yerel akışı logla
+
       // Yerel videoyu bağla
       const localVideoElement = document.getElementById('local-video') as HTMLVideoElement;
       if (localVideoElement) {
-        localVideoElement.srcObject = stream;
-        localVideoElement.muted = true; // Echo'yu önlemek için
-        await localVideoElement.play();
+        localVideoElement.srcObject = localStream;
+        localVideoElement.muted = true; // Echo'yu önlemek için ses kapalı
+        localVideoElement.play().catch((err) => console.error('Error playing local video:', err));
       }
 
-      // PeerJS çağrısını yanıtla
+      // Gelen çağrıyı yanıtla
       incomingCall.call.answer(stream);
 
       // Uzak akışı dinle
       incomingCall.call.on('stream', (remoteStream: MediaStream) => {
-        console.log('Remote stream received');
+        console.log('Remote stream received:', remoteStream); // Uzak akışı logla
         setRemoteStream(remoteStream);
 
         const remoteVideoElement = document.getElementById('remote-video') as HTMLVideoElement;
         if (remoteVideoElement) {
           remoteVideoElement.srcObject = remoteStream;
-          remoteVideoElement.play();
+          remoteVideoElement.play().catch((err) => console.error('Error playing remote video:', err));
         }
       });
 
-      // Çağrı kapatma durumunu dinle
+      // Çağrı kapatıldığında akışları temizle
       incomingCall.call.on('close', () => {
         console.log('Call ended');
+        if (localStream) {
+          localStream.getTracks().forEach((track) => track.stop());
+        }
         setLocalStream(null);
         setRemoteStream(null);
       });
 
+      // Gelen çağrı bilgisini temizle
       setIncomingCall(null);
     } catch (error) {
       console.error('Error accepting call:', error);
+
+      // Hata durumunda akışı temizle
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+      }
+
+      alert('Unable to access your camera/microphone. Please check permissions.');
     }
   };
+
+
 
   const handleRejectCall = () => {
     console.log('Call rejected:', incomingCall);

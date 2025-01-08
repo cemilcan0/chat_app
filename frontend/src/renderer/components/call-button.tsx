@@ -4,34 +4,50 @@ import useChatStore from '../store/chatStore';
 interface CallButtonProps {
   icon: string;
   altText: string;
-  receiver: string; // Aramanın yapılacağı kullanıcının username'i
+  receiver: string; // Aramanın yapılacağı kullanıcının username'i (aynı zamanda Peer ID'si)
   type: 'audio' | 'video'; // Arama türü: sesli veya görüntülü
 }
 
 const CallButton: React.FC<CallButtonProps> = ({ icon, altText, receiver, type }) => {
   const { connectPeer, startCall, endCall, user } = useChatStore();
+
   const [isCalling, setIsCalling] = useState(false); // Arama durumu
+  const [isConnecting, setIsConnecting] = useState(false); // PeerJS bağlantı durumu
 
   const handleCall = async () => {
     if (!user) {
       console.error('User not found');
       return;
     }
-
-    console.log(`Starting ${type} call with ${receiver}...`);
-
-    // PeerJS bağlantısını başlat
-    connectPeer(user.username);
-
-    setIsCalling(true); // Aramanın başladığını belirtir
-
+  
+    if (!user.username) {
+      console.error('User does not have a valid username');
+      return;
+    }
+  
+    if (!receiver) {
+      console.error('Receiver Peer ID is missing');
+      return;
+    }
+  
     try {
-      await startCall(receiver);
+      console.log('Connecting PeerJS...');
+      setIsConnecting(true); // Bağlantı durumu başlıyor
+  
+      // Kendi Peer bağlantısını başlat
+      await connectPeer(user.username); // Burada kendi kullanıcı adını Peer ID olarak kullanıyoruz
+  
+      console.log('Starting call to:', receiver); // Aranan kişinin Peer ID'si
+      setIsCalling(true); // Arama durumu başlıyor
+  
+      await startCall(receiver); 
     } catch (error) {
-      console.error('Error starting call:', error);
-      setIsCalling(false); // Hata durumunda arama durumunu sıfırla
+      console.error('Error during call:', error);
+    } finally {
+      setIsConnecting(false); // Bağlantı durumu tamamlanıyor
     }
   };
+  
 
   const handleCancelCall = () => {
     console.log('Call canceled');
@@ -48,6 +64,9 @@ const CallButton: React.FC<CallButtonProps> = ({ icon, altText, receiver, type }
       >
         <img src={icon} alt={altText} className="w-5 h-5 text-white" />
       </button>
+
+      {/* Bağlantı Bekleme Durumu */}
+      {isConnecting && <p className="text-gray-500">Connecting...</p>}
 
       {/* Arama Durumu Gösterimi */}
       {isCalling && (
