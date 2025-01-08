@@ -3,18 +3,18 @@ import { useChat } from "../context/ChatContext";
 import apiClient from "../utils/apiClient";
 import phone from '../../../assets/icons/phone-call.svg';
 import camera from '../../../assets/icons/camera.svg';
+import { initializePeer } from "../utils/peer";
 import Peer from "peerjs";
 
 const Rightbar: React.FC = () => {
-  const { selectedUser, addMessage, setSelectedUser, incomingCall, acceptCall, setIncomingCall } = useChat();
+  const { selectedUser, addMessage } = useChat();
   const [message, setMessage] = useState("");
   const messageEndRef = useRef<HTMLDivElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const localVideoRef = useRef<HTMLVideoElement>(null);
 
-  const [isCalling, setIsCalling] = useState(false); // Arama popup
-  const [isVideoCall, setIsVideoCall] = useState(false); // Aramanın türü
-  const [isWaitingForAcceptance, setIsWaitingForAcceptance] = useState(false); // Bekleme durumu
+  const [isCalling, setIsCalling] = useState(false); // Popup göstermek için state
+  const [isVideoCall, setIsVideoCall] = useState(false); // Aramanın türü (sesli/görüntülü)
+  const [isWaitingForAcceptance, setIsWaitingForAcceptance] = useState(false); // Arama kabul durumu
 
   const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -56,61 +56,50 @@ const Rightbar: React.FC = () => {
     sendMessage();
   };
 
-  // Arama başlatma
-  const startCall = async (isVideo: boolean) => {
+  // Arama başlatma isteği
+  const startCall = async (isVideoCall: boolean) => {
     try {
-      setIsVideoCall(isVideo);
-      setIsCalling(true);
-      setIsWaitingForAcceptance(true);
-
+      // PeerJS bağlantısını başlat
       const peer = new Peer();
 
       peer.on("open", async (peerId) => {
         console.log("Peer connected with ID:", peerId);
 
+        setIsCalling(true); // Popup'u göster
+        setIsWaitingForAcceptance(true); // Arama bekleme durumu
+
+        // Backend'e arama başlatma isteği gönder
         const response = await apiClient.post("/chat-app/start-call/", {
           sender: loggedInUser.username,
           receiver: selectedUser?.username,
           peer_id: peerId,
-          is_video_call: isVideo,
+          is_video_call: isVideoCall, // Arama türü: sesli/görüntülü
         });
 
         console.log("Call started:", response.data);
+      });
 
-        // Stream ayarla
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: isVideo,
-          audio: true,
-        });
+      peer.on("call", (call) => {
+        setIsWaitingForAcceptance(false); // Arama kabul edildi
+        console.log("Call accepted by receiver");
 
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-          localVideoRef.current.play();
-        }
-
-        if (peerId) {
-          const call = peer.call(peerId, stream);
-          call.on("stream", (remoteStream) => {
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = remoteStream;
-              remoteVideoRef.current.play();
-            }
+        // Call kabul edildiğinde video/ses akışını başlat
+        navigator.mediaDevices
+          .getUserMedia({ video: isVideoCall, audio: true })
+          .then((stream) => {
+            call.answer(stream); // Aramayı yanıtla
+            call.on("stream", (remoteStream: MediaStream) => {
+              if (remoteVideoRef.current) {
+                remoteVideoRef.current.srcObject = remoteStream;
+              }
+            });
           });
-
-          call.on("close", () => {
-            console.log("Call ended.");
-          });
-
-          call.on("error", (err) => {
-            console.error("Call error:", err);
-          });
-        } else {
-          console.error("Peer ID is undefined in response.");
-        }
       });
 
       peer.on("error", (err) => {
         console.error("PeerJS error:", err);
+        setIsCalling(false); // Hata durumunda popup'u kapat
+        setIsWaitingForAcceptance(false);
       });
     } catch (error) {
       console.error("Arama başlatılırken hata oluştu:", error);
@@ -118,8 +107,8 @@ const Rightbar: React.FC = () => {
   };
 
   const closeCallPopup = () => {
-    setIsCalling(false);
-    setIsWaitingForAcceptance(false);
+    setIsCalling(false); // Popup'u kapat
+    setIsWaitingForAcceptance(false); // Arama bekleme durumunu sıfırla
   };
 
   return (
@@ -139,21 +128,25 @@ const Rightbar: React.FC = () => {
               </p>
             </div>
             <div className="ml-auto flex space-x-2">
+              {/* Sesli arama butonu */}
               <button
                 className="bg-green-500 text-white px-4 py-2 rounded"
-                onClick={() => startCall(false)}
+                onClick={() => startCall(false)} // Sesli arama
               >
-                <img src={phone} alt="Voice Call" className="w-5 h-5" />
+                <img src={phone} alt="Voice Call" className="w-5 h-5 text-white" />
               </button>
+
+              {/* Görüntülü arama butonu */}
               <button
                 className="bg-blue-500 text-white px-4 py-2 rounded"
-                onClick={() => startCall(true)}
+                onClick={() => startCall(true)} // Görüntülü arama
               >
-                <img src={camera} alt="Video Call" className="w-5 h-5" />
+                <img src={camera} alt="Video Call" className="w-5 h-5 text-white" />
               </button>
             </div>
           </div>
 
+          {/* Mesaj listesi */}
           <div className="flex-grow overflow-y-auto">
             {selectedUser.messages.map((msg, index) => (
               <div
@@ -174,6 +167,7 @@ const Rightbar: React.FC = () => {
             <div ref={messageEndRef}></div>
           </div>
 
+          {/* Mesaj gönderme alanı */}
           <form onSubmit={handleSubmit} className="flex items-center mt-4">
             <input
               type="text"
@@ -182,7 +176,10 @@ const Rightbar: React.FC = () => {
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Type your message..."
             />
-            <button type="submit" className="ml-2 bg-blue-500 text-white px-4 py-2 rounded">
+            <button
+              type="submit"
+              className="ml-2 bg-blue-500 text-white px-4 py-2 rounded"
+            >
               Send
             </button>
           </form>
@@ -193,6 +190,7 @@ const Rightbar: React.FC = () => {
         </div>
       )}
 
+      {/* Arama Popup'u */}
       {isCalling && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
@@ -209,7 +207,10 @@ const Rightbar: React.FC = () => {
                 </button>
               </>
             ) : (
-              <h2 className="text-xl font-bold mb-4">Call Accepted!</h2>
+              <>
+                <h2 className="text-xl font-bold mb-4">Call Accepted!</h2>
+                <p className="text-gray-700">Connecting to {selectedUser?.name}...</p>
+              </>
             )}
           </div>
         </div>
