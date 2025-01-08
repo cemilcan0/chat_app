@@ -1,0 +1,221 @@
+import React, { useEffect, useRef, useState } from "react";
+import { useChat } from "../context/ChatContext";
+import apiClient from "../utils/apiClient";
+import phone from '../../../assets/icons/phone-call.svg';
+import camera from '../../../assets/icons/camera.svg';
+import Peer from "peerjs";
+
+const Rightbar: React.FC = () => {
+  const { selectedUser, addMessage, setSelectedUser, incomingCall, acceptCall, setIncomingCall } = useChat();
+  const [message, setMessage] = useState("");
+  const messageEndRef = useRef<HTMLDivElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+
+  const [isCalling, setIsCalling] = useState(false); // Arama popup
+  const [isVideoCall, setIsVideoCall] = useState(false); // Aramanın türü
+  const [isWaitingForAcceptance, setIsWaitingForAcceptance] = useState(false); // Bekleme durumu
+
+  const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
+
+  // Scroll işlemi
+  const scrollToBottom = () => {
+    messageEndRef.current?.scrollIntoView();
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [selectedUser?.messages]);
+
+  const sendMessage = async () => {
+    if (selectedUser && message.trim() !== "") {
+      const msg = {
+        text: message,
+        sender: loggedInUser.username,
+        receiver: selectedUser.username,
+        date_time: new Date().toISOString(),
+        read: true,
+      };
+
+      try {
+        await apiClient.post("/chat-app/message/", {
+          text: msg.text,
+          receiver: msg.receiver,
+        });
+
+        addMessage(selectedUser.username, msg);
+        setMessage("");
+      } catch (error) {
+        console.error("Mesaj gönderilirken hata oluştu:", error);
+      }
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage();
+  };
+
+  // Arama başlatma
+  const startCall = async (isVideo: boolean) => {
+    try {
+      setIsVideoCall(isVideo);
+      setIsCalling(true);
+      setIsWaitingForAcceptance(true);
+
+      const peer = new Peer();
+
+      peer.on("open", async (peerId) => {
+        console.log("Peer connected with ID:", peerId);
+
+        const response = await apiClient.post("/chat-app/start-call/", {
+          sender: loggedInUser.username,
+          receiver: selectedUser?.username,
+          peer_id: peerId,
+          is_video_call: isVideo,
+        });
+
+        console.log("Call started:", response.data);
+
+        // Stream ayarla
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: isVideo,
+          audio: true,
+        });
+
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+          localVideoRef.current.play();
+        }
+
+        if (peerId) {
+          const call = peer.call(peerId, stream);
+          call.on("stream", (remoteStream) => {
+            if (remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = remoteStream;
+              remoteVideoRef.current.play();
+            }
+          });
+
+          call.on("close", () => {
+            console.log("Call ended.");
+          });
+
+          call.on("error", (err) => {
+            console.error("Call error:", err);
+          });
+        } else {
+          console.error("Peer ID is undefined in response.");
+        }
+      });
+
+      peer.on("error", (err) => {
+        console.error("PeerJS error:", err);
+      });
+    } catch (error) {
+      console.error("Arama başlatılırken hata oluştu:", error);
+    }
+  };
+
+  const closeCallPopup = () => {
+    setIsCalling(false);
+    setIsWaitingForAcceptance(false);
+  };
+
+  return (
+    <div className="w-2/3 bg-white p-4 flex flex-col">
+      {selectedUser ? (
+        <>
+          <div className="flex items-center mb-4 border-b pb-2">
+            <img
+              src={selectedUser.photo || "https://via.placeholder.com/50"}
+              alt="User Avatar"
+              className="w-12 h-12 rounded-full mr-4"
+            />
+            <div>
+              <h3 className="text-lg font-bold">{selectedUser.name}</h3>
+              <p className="text-sm text-gray-500">
+                {selectedUser.online ? "Online" : "Offline"}
+              </p>
+            </div>
+            <div className="ml-auto flex space-x-2">
+              <button
+                className="bg-green-500 text-white px-4 py-2 rounded"
+                onClick={() => startCall(false)}
+              >
+                <img src={phone} alt="Voice Call" className="w-5 h-5" />
+              </button>
+              <button
+                className="bg-blue-500 text-white px-4 py-2 rounded"
+                onClick={() => startCall(true)}
+              >
+                <img src={camera} alt="Video Call" className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-grow overflow-y-auto">
+            {selectedUser.messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`flex mb-2 ${msg.sender === loggedInUser.username
+                  ? "justify-end mr-2"
+                  : "justify-start"
+                  }`}
+              >
+                <div className="p-2 rounded w-max max-w-xs bg-gray-100">
+                  <p className="break-words">{msg.text}</p>
+                  <span className="text-xs text-gray-500 block mt-1">
+                    {new Date(msg.date_time).toLocaleTimeString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+            <div ref={messageEndRef}></div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex items-center mt-4">
+            <input
+              type="text"
+              className="flex-grow border border-gray-300 rounded p-2"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Type your message..."
+            />
+            <button type="submit" className="ml-2 bg-blue-500 text-white px-4 py-2 rounded">
+              Send
+            </button>
+          </form>
+        </>
+      ) : (
+        <div className="flex items-center justify-center h-full text-gray-500">
+          Select a user to start chatting
+        </div>
+      )}
+
+      {isCalling && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
+            {isWaitingForAcceptance ? (
+              <>
+                <h2 className="text-xl font-bold mb-4">
+                  Waiting for {selectedUser?.name} to accept the call...
+                </h2>
+                <button
+                  className="bg-red-500 text-white px-4 py-2 rounded"
+                  onClick={closeCallPopup}
+                >
+                  Cancel Call
+                </button>
+              </>
+            ) : (
+              <h2 className="text-xl font-bold mb-4">Call Accepted!</h2>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Rightbar;
