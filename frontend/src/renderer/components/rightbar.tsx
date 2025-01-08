@@ -1,16 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useChat } from "../context/ChatContext";
-import apiClient from "../utils/apiClient";
-import phone from '../../../assets/icons/phone-call.svg';
-import camera from '../../../assets/icons/camera.svg';
+import phone from "../../../assets/icons/phone-call.svg";
+import camera from "../../../assets/icons/camera.svg";
 import { initializePeer } from "../utils/peer";
 import Peer from "peerjs";
+import apiClient from "../utils/apiClient";
 
-const Rightbar: React.FC = () => {
+interface RightbarProps {
+  localVideoRef: React.RefObject<HTMLVideoElement>;
+  remoteVideoRef: React.RefObject<HTMLVideoElement>;
+}
+
+const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) => {
   const { selectedUser, addMessage } = useChat();
   const [message, setMessage] = useState("");
   const messageEndRef = useRef<HTMLDivElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   const [isCalling, setIsCalling] = useState(false); // Popup göstermek için state
   const [isVideoCall, setIsVideoCall] = useState(false); // Aramanın türü (sesli/görüntülü)
@@ -86,8 +90,10 @@ const Rightbar: React.FC = () => {
           .getUserMedia({ video: isVideoCall, audio: true })
           .then((stream) => {
             call.answer(stream); // Aramayı yanıtla
-            remoteVideoRef.current!.srcObject = stream; // Yerel video
-            remoteVideoRef.current!.play();
+            if (localVideoRef.current) {
+              localVideoRef.current.srcObject = stream; // Yerel video
+              localVideoRef.current.play();
+            }
 
             // Uzak video akışını dinle
             call.on("stream", (remoteStream) => {
@@ -224,6 +230,21 @@ const Rightbar: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Video Alanı */}
+      <div className="fixed bottom-0 right-0 m-4">
+        <video
+          ref={localVideoRef}
+          autoPlay
+          muted
+          className="w-48 h-48 bg-black"
+        ></video>
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          className="w-48 h-48 bg-black"
+        ></video>
+      </div>
     </div>
   );
 };

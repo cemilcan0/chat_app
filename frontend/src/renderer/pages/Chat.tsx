@@ -22,7 +22,10 @@ const Chat: React.FC = () => {
   return (
     <div className="flex h-screen">
       <Leftbar />
-      <Rightbar />
+      <Rightbar
+        localVideoRef={localVideoRef}
+        remoteVideoRef={remoteVideoRef}
+      />
 
       {/* Gelen Arama Popup'ı */}
       {incomingCall && (
@@ -53,26 +56,6 @@ const Chat: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Video Alanı */}
-      <div
-        className={`fixed bottom-0 right-0 m-4 ${!localVideoRef.current?.srcObject || !remoteVideoRef.current?.srcObject
-            ? "hidden"
-            : ""
-          }`}
-      >
-        <video
-          ref={localVideoRef}
-          autoPlay
-          muted
-          className="w-48 h-48 bg-black"
-        ></video>
-        <video
-          ref={remoteVideoRef}
-          autoPlay
-          className="w-48 h-48 bg-black"
-        ></video>
-      </div>
     </div>
   );
 };
