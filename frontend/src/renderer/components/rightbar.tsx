@@ -92,15 +92,26 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
             call.answer(stream); // Aramayı yanıtla
             if (localVideoRef.current) {
               localVideoRef.current.srcObject = stream; // Yerel video
-              localVideoRef.current.play();
+              localVideoRef.current
+                .play()
+                .catch((err) =>
+                  console.error("Error while playing local video:", err)
+                );
             }
 
             // Uzak video akışını dinle
             call.on("stream", (remoteStream) => {
               console.log("Uzak akış alındı");
               if (remoteVideoRef.current) {
-                remoteVideoRef.current.srcObject = remoteStream;
-                remoteVideoRef.current.play();
+                // Aynı stream'in birden fazla kez atanmasını önlemek için kontrol
+                if (remoteVideoRef.current.srcObject !== remoteStream) {
+                  remoteVideoRef.current.srcObject = remoteStream;
+                  remoteVideoRef.current
+                    .play()
+                    .catch((err) =>
+                      console.error("Error while playing remote video:", err)
+                    );
+                }
               }
             });
 
@@ -108,7 +119,10 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
               console.error("Call error:", err);
             });
           })
-          .catch((err) => console.error("Media device error:", err));
+          .catch((err) => {
+            console.error("Media device error:", err);
+            setIsCalling(false); // Hata durumunda popup'u kapat
+          });
       });
 
       peer.on("error", (err) => {
