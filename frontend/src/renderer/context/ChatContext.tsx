@@ -175,9 +175,13 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const call = peer.call(incomingCall.callerPeerId, stream);
 
           call.on("stream", (remoteStream) => {
-            // Uzaktaki video gösterimi
-            remoteVideoRef.srcObject = remoteStream;
-            remoteVideoRef.play();
+            console.log("Remote stream received:", remoteStream);
+            if (remoteVideoRef) {
+              remoteVideoRef.srcObject = remoteStream;
+              remoteVideoRef.play();
+            } else {
+              console.error("Remote video element is not available.");
+            }
           });
 
           call.on("error", (err) => {
@@ -197,6 +201,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           localVideoRef.play();
 
           call.on("stream", (remoteStream: MediaStream) => {
+            console.log("Remote stream received");
             remoteVideoRef.srcObject = remoteStream;
             remoteVideoRef.play();
           });

@@ -59,7 +59,6 @@ const Rightbar: React.FC = () => {
   // Arama başlatma isteği
   const startCall = async (isVideoCall: boolean) => {
     try {
-      // PeerJS bağlantısını başlat
       const peer = new Peer();
 
       peer.on("open", async (peerId) => {
@@ -69,31 +68,41 @@ const Rightbar: React.FC = () => {
         setIsWaitingForAcceptance(true); // Arama bekleme durumu
 
         // Backend'e arama başlatma isteği gönder
-        const response = await apiClient.post("/chat-app/start-call/", {
+        await apiClient.post("/chat-app/start-call/", {
           sender: loggedInUser.username,
           receiver: selectedUser?.username,
           peer_id: peerId,
           is_video_call: isVideoCall, // Arama türü: sesli/görüntülü
         });
-
-        console.log("Call started:", response.data);
       });
 
+      // Arama çağrısı yanıtlandığında
       peer.on("call", (call) => {
-        setIsWaitingForAcceptance(false); // Arama kabul edildi
-        console.log("Call accepted by receiver");
+        console.log("Arama kabul edildi, bağlanılıyor...");
+        setIsWaitingForAcceptance(false); // Arama kabul durumu sıfırla
 
-        // Call kabul edildiğinde video/ses akışını başlat
+        // Medya cihazlarına erişim
         navigator.mediaDevices
           .getUserMedia({ video: isVideoCall, audio: true })
           .then((stream) => {
             call.answer(stream); // Aramayı yanıtla
-            call.on("stream", (remoteStream: MediaStream) => {
+            remoteVideoRef.current!.srcObject = stream; // Yerel video
+            remoteVideoRef.current!.play();
+
+            // Uzak video akışını dinle
+            call.on("stream", (remoteStream) => {
+              console.log("Uzak akış alındı");
               if (remoteVideoRef.current) {
                 remoteVideoRef.current.srcObject = remoteStream;
+                remoteVideoRef.current.play();
               }
             });
-          });
+
+            call.on("error", (err) => {
+              console.error("Call error:", err);
+            });
+          })
+          .catch((err) => console.error("Media device error:", err));
       });
 
       peer.on("error", (err) => {
