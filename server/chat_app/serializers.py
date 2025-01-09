@@ -81,7 +81,7 @@ class MessageSerializer(serializers.Serializer):
 
 class MessageModelSerializer(serializers.ModelSerializer):
     sender = serializers.CharField(read_only=True, source='sender.username')
-    read = serializers.BooleanField(default=True)
+    read = serializers.BooleanField()
 
     class Meta:
         model = Message

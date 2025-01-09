@@ -29,6 +29,7 @@ ALLOWED_HOSTS = ['testapi.berat-dogan.com', 'example.com', 'localhost', '127.0.0
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -37,7 +38,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'debug_toolbar',
     'channels',
-    'daphne',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',

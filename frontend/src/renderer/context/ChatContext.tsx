@@ -17,6 +17,7 @@ interface User {
   status: string;
   messages: Message[];
   peerId?: string;
+  unreadMessages: number;
 }
 
 interface IncomingCall {
@@ -48,7 +49,14 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const fetchUsersWithMessages = async () => {
       try {
         const response = await apiClient.get("/chat-app/friends/");
-        const fetchedUsers: User[] = response.data;
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
+        const fetchedUsers: User[] = response.data.map((user: User) => ({
+          ...user,
+          unreadMessages: user.messages.filter(
+            (msg) => !msg.read && msg.sender !== storedUser.username
+          ).length, // Unread mesajları hesapla
+        }));
         setUsers(fetchedUsers);
       } catch (error) {
         console.error("Error fetching users and messages:", error);
@@ -69,7 +77,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // WebSocket bağlan
     const ws = new WebSocket(
-      `wss://testapi.berat-dogan.com/ws/message/${storedUser.username}/`
+      // `wss://testapi.berat-dogan.com/ws/message/${storedUser.username}/`
+      `ws://localhost:8000/ws/message/${storedUser.username}/`
     );
     setSocket(ws);
 
@@ -118,36 +127,63 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Kullanıcı seçimi
   const handleSetSelectedUser = (user: User) => {
-    setSelectedUser((prevUser: User | null) => ({
-      ...user,
-      peerId: user.peerId || prevUser?.peerId, // Eğer mevcut bir peerId varsa, koru
-    }));
+    apiClient.post(`/chat-app/read-messages/${user.username}`)
+      .then(() => {
+        setUsers((prevUsers) =>
+          prevUsers.map((u) =>
+            u.username === user.username
+              ? { ...u, unreadMessages: 0 }
+              : u
+          )
+        );
+
+        setSelectedUser((prevUser: User | null) => ({
+          ...user,
+          peerId: user.peerId || prevUser?.peerId,
+          unreadMessages: 0,
+        }));
+      })
+      .catch((error) => {
+        console.error("Error marking messages as read:", error);
+      });
   };
 
   // Yeni mesaj ekleme
   const addMessage = (username: string, message: Message) => {
-    // Kullanıcılar arasında ilgili kullanıcıyı bul ve mesajlarını güncelle
     setUsers((prevUsers) => {
       const updatedUsers = prevUsers.map((user) =>
         user.username === username
-          ? { ...user, messages: [...user.messages, message] }
+          ? {
+            ...user,
+            messages: [...user.messages, message],
+            unreadMessages: user.username === selectedUser?.username
+              ? user.unreadMessages
+              : user.unreadMessages + 1,
+          }
           : user
       );
       return updatedUsers;
     });
 
-    // Eğer seçili kullanıcı güncelleniyorsa
     if (selectedUser?.username === username) {
       setSelectedUser((prevSelectedUser) => {
         if (!prevSelectedUser) return null;
 
         const updatedMessages = [...prevSelectedUser.messages, message];
-        const updatedSelectedUser = {
+
+        apiClient
+          .post(`/chat-app/read-messages/${username}`)
+          .then(() => {
+            console.log("Messages marked as read");
+          })
+          .catch((error) => {
+            console.error("Error marking messages as read:", error);
+          });
+
+        return {
           ...prevSelectedUser,
           messages: updatedMessages,
         };
-
-        return updatedSelectedUser;
       });
     }
   };

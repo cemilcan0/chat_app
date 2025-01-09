@@ -4,7 +4,7 @@ from chat_app.views.auth_view import *
 from rest_framework.authtoken import views
 
 from chat_app.views.call_view import StartCall, EndCall
-from chat_app.views.message_view import MessageView
+from chat_app.views.message_view import MessageView, ReadMessageView
 from config import settings
 from chat_app.views.friendship_view import SendFriendRequestView, AcceptFriendRequestView, FriendsView, DeclineFriendRequestView, PendingFriendRequestsView
 
@@ -19,6 +19,7 @@ urlpatterns = [
     path('logout/', LogOutView.as_view()),
     path('users/', UsersView.as_view()),
     path('message/', MessageView.as_view()),
+    path('read-messages/<str:username>', ReadMessageView.as_view()),
     path('start-call/', StartCall.as_view()),
     path('end-call/', EndCall.as_view()),
     path('test-socket/', test_socket),

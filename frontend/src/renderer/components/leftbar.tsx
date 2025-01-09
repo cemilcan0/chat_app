@@ -44,7 +44,7 @@ const Leftbar: React.FC = () => {
               }`}
             onClick={() => setSelectedUser(user)}
           >
-            <div className="flex items-center">
+            <div className="flex items-center relative">
               <img
                 src={user.photo || "https://via.placeholder.com/40"}
                 alt="User Avatar"
@@ -54,6 +54,11 @@ const Leftbar: React.FC = () => {
                 <h3 className="text-md font-bold">{user.name}</h3>
                 <p className="text-sm text-gray-600">{user.online ? "Online" : "Offline"}</p>
               </div>
+              {user.unreadMessages > 0 && (
+                <div className="bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center absolute -right-2 -top-2">
+                  {user.unreadMessages}
+                </div>
+              )}
             </div>
           </div>
         ))}
