@@ -17,6 +17,7 @@ urlpatterns = [
     path('login/', Login.as_view()),
     path('registration/', RegisterView.as_view()),
     path('logout/', LogOutView.as_view()),
+    path('edit-profile/', EditProfileView.as_view(), name='edit-profile'),
     path('users/', UsersView.as_view()),
     path('message/', MessageView.as_view()),
     path('read-messages/<str:username>', ReadMessageView.as_view()),

@@ -187,3 +187,29 @@ class FriendsWithLastMessageSerializer(serializers.ModelSerializer):
                 "date_time": last_message.date_time,
             }
         return None
+
+
+class EditProfileSerializer(serializers.ModelSerializer):
+    status = serializers.CharField(source="profile.status", required=False)
+    photo = serializers.ImageField(source="profile.photo", required=False)
+
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "status", "photo"]
+
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop("profile", {})
+        instance.first_name = validated_data.get(
+            "first_name", instance.first_name)
+        instance.last_name = validated_data.get(
+            "last_name", instance.last_name)
+        instance.save()
+
+        # Profile alanlarını güncelle
+        profile = instance.profile
+        profile.status = profile_data.get("status", profile.status)
+        if "photo" in profile_data:
+            profile.photo = profile_data["photo"]
+        profile.save()
+
+        return instance
