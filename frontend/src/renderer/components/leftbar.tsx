@@ -1,31 +1,17 @@
 import React from "react";
 import { useChat } from "../context/ChatContext";
-import LogoutButton from "./logout-button";
 import AddFriend from "./add-friend";
+import Profile from "./profile";
 
 const Leftbar: React.FC = () => {
   const { users, selectedUser, setSelectedUser } = useChat();
-  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
 
   return (
 
     <div className="w-1/3 bg-[#433259] flex flex-col">
       <div className=" p-4">
         {/* Giriş Yapmış Kullanıcı */}
-        <div className="mb-4 p-4 bg-white rounded shadow flex justify-between items-center">
-          <div className="flex items-center">
-            <img
-              src={`https://testapi.berat-dogan.com${storedUser.photo}` || "https://via.placeholder.com/50"}
-              alt="User Avatar"
-              className="w-12 h-12 rounded-full mr-4"
-            />
-            <div>
-              <h3 className="text-lg font-bold">{storedUser.name || "Unknown User"}</h3>
-              <p className="text-sm text-gray-500">{storedUser.username}</p>
-            </div>
-          </div>
-          <LogoutButton />
-        </div>
+        <Profile />
 
         <div className="flex items-center mb-4">
           <input
