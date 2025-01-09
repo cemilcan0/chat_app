@@ -77,8 +77,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // WebSocket bağlan
     const ws = new WebSocket(
-      // `wss://testapi.berat-dogan.com/ws/message/${storedUser.username}/`
-      `ws://localhost:8000/ws/message/${storedUser.username}/`
+      `wss://testapi.berat-dogan.com/ws/message/${storedUser.username}/`
+      // `ws://localhost:8000/ws/message/${storedUser.username}/`
     );
     setSocket(ws);
 
