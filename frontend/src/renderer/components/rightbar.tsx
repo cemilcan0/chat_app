@@ -83,34 +83,53 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
       // Arama çağrısı yanıtlandığında
       peer.on("call", (call) => {
         console.log("Arama kabul edildi, bağlanılıyor...");
-        setIsWaitingForAcceptance(false); // Arama kabul durumu sıfırla
+        setIsWaitingForAcceptance(false); // Arama bekleme durumu sıfırla
+        setIsCalling(false); // Popup'u kapat
 
         // Medya cihazlarına erişim
         navigator.mediaDevices
           .getUserMedia({ video: isVideoCall, audio: true })
           .then((stream) => {
             call.answer(stream); // Aramayı yanıtla
+
+            // Yerel video akışını ayarla ve oynat
             if (localVideoRef.current) {
-              localVideoRef.current.srcObject = stream; // Yerel video
-              localVideoRef.current
-                .play()
-                .catch((err) =>
-                  console.error("Error while playing local video:", err)
-                );
+              localVideoRef.current.srcObject = stream;
+
+              // Oynatma işlemi için Promise kullan
+              const playPromise = localVideoRef.current.play();
+              if (playPromise !== undefined) {
+                playPromise
+                  .then(() => {
+                    console.log("Yerel video oynatılıyor...");
+                  })
+                  .catch((err) => {
+                    console.error("Yerel video oynatma hatası:", err);
+                  });
+              }
             }
 
             // Uzak video akışını dinle
             call.on("stream", (remoteStream) => {
               console.log("Uzak akış alındı");
               if (remoteVideoRef.current) {
-                // Aynı stream'in birden fazla kez atanmasını önlemek için kontrol
+                // Eğer akış farklıysa yeni akışı ata
                 if (remoteVideoRef.current.srcObject !== remoteStream) {
                   remoteVideoRef.current.srcObject = remoteStream;
-                  remoteVideoRef.current
-                    .play()
-                    .catch((err) =>
-                      console.error("Error while playing remote video:", err)
-                    );
+
+                  // Metadata yüklendiğinde oynat
+                  remoteVideoRef.current.addEventListener("loadedmetadata", () => {
+                    const playPromise = remoteVideoRef.current?.play();
+                    if (playPromise !== undefined) {
+                      playPromise
+                        .then(() => {
+                          console.log("Uzak video oynatılıyor...");
+                        })
+                        .catch((err) => {
+                          console.error("Uzak video oynatma hatası:", err);
+                        });
+                    }
+                  });
                 }
               }
             });
@@ -120,7 +139,7 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
             });
           })
           .catch((err) => {
-            console.error("Media device error:", err);
+            console.error("Medya cihazına erişim hatası:", err);
             setIsCalling(false); // Hata durumunda popup'u kapat
           });
       });

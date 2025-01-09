@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import Leftbar from "../components/leftbar";
 import Rightbar from "../components/rightbar";
 import { useChat } from "../context/ChatContext";
+import apiClient from "../utils/apiClient"; // Backend ile iletişim için
 
 const Chat: React.FC = () => {
   const { incomingCall, setIncomingCall, acceptCall } = useChat();
@@ -12,11 +13,23 @@ const Chat: React.FC = () => {
   const handleAcceptCall = () => {
     if (localVideoRef.current && remoteVideoRef.current) {
       acceptCall(localVideoRef.current, remoteVideoRef.current);
+    } else {
+      console.error("Video elementleri bulunamadı!");
     }
   };
 
-  const closePopup = () => {
-    setIncomingCall(null); // Popup'ı kapat
+  const closePopup = async () => {
+    if (incomingCall) {
+      try {
+        // Backend'e arama reddedildiğini bildir
+        await apiClient.post("/chat-app/reject-call/", {
+          caller: incomingCall.callerName,
+        });
+      } catch (error) {
+        console.error("Arama reddedilirken bir hata oluştu:", error);
+      }
+    }
+    setIncomingCall(null); // Popup'u kapat
   };
 
   return (
@@ -32,7 +45,7 @@ const Chat: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
             <img
-              src={incomingCall.callerPhoto}
+              src={incomingCall.callerPhoto || "https://via.placeholder.com/100"}
               alt="Caller Avatar"
               className="w-20 h-20 rounded-full mx-auto mb-4"
             />

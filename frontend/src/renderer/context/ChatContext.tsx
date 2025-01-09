@@ -169,18 +169,39 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .then((stream) => {
           // Yerel video gösterimi
           localVideoRef.srcObject = stream;
-          localVideoRef.play();
+          const localPlayPromise = localVideoRef.play();
+          if (localPlayPromise !== undefined) {
+            localPlayPromise
+              .then(() => {
+                console.log("Local video is playing...");
+              })
+              .catch((error) => {
+                console.error("Error while playing local video:", error);
+              });
+          }
 
           // Gelen çağrıya cevap verme
           const call = peer.call(incomingCall.callerPeerId, stream);
 
-          call.on("stream", (remoteStream) => {
+          call.on("stream", (remoteStream: MediaStream) => {
             console.log("Remote stream received:", remoteStream);
-            if (remoteVideoRef) {
+
+            if (remoteVideoRef.srcObject !== remoteStream) {
               remoteVideoRef.srcObject = remoteStream;
-              remoteVideoRef.play();
-            } else {
-              console.error("Remote video element is not available.");
+
+              // Metadata tamamen yüklendiğinde video oynat
+              remoteVideoRef.addEventListener("loadedmetadata", () => {
+                const remotePlayPromise = remoteVideoRef.play();
+                if (remotePlayPromise !== undefined) {
+                  remotePlayPromise
+                    .then(() => {
+                      console.log("Remote video is playing...");
+                    })
+                    .catch((error) => {
+                      console.error("Error while playing remote video:", error);
+                    });
+                }
+              });
             }
           });
 
@@ -198,12 +219,32 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .then((stream) => {
           call.answer(stream); // Çağrıyı yanıtla
           localVideoRef.srcObject = stream;
-          localVideoRef.play();
+
+          const localPlayPromise = localVideoRef.play();
+          if (localPlayPromise !== undefined) {
+            localPlayPromise
+              .then(() => {
+                console.log("Local video is playing...");
+              })
+              .catch((error) => {
+                console.error("Error while playing local video:", error);
+              });
+          }
 
           call.on("stream", (remoteStream: MediaStream) => {
             console.log("Remote stream received");
             remoteVideoRef.srcObject = remoteStream;
-            remoteVideoRef.play();
+
+            const remotePlayPromise = remoteVideoRef.play();
+            if (remotePlayPromise !== undefined) {
+              remotePlayPromise
+                .then(() => {
+                  console.log("Remote video is playing...");
+                })
+                .catch((error) => {
+                  console.error("Error while playing remote video:", error);
+                });
+            }
           });
         })
         .catch((err) => console.error("Error accessing media devices:", err));
