@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { useChat } from "../context/ChatContext";
 import phone from "../../../assets/icons/phone-call.svg";
 import camera from "../../../assets/icons/camera.svg";
-import { initializePeer } from "../utils/peer";
+import microphone from "../../../assets/icons/microphone.svg";
+import callCancel from "../../../assets/icons/call-cancel.svg";
+import dummyPhoto from '../../../assets/images/photo.jpg';
 import Peer from "peerjs";
 import apiClient from "../utils/apiClient";
-import dummyPhoto from '../../../assets/images/photo.jpg';
-
 
 interface RightbarProps {
   localVideoRef: React.RefObject<HTMLVideoElement>;
@@ -163,9 +163,35 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
 
   return (
     <div className="w-2/3 bg-white p-4 flex flex-col">
+      {/* Video Alanı */}
+      {
+        isCalling && isVideoCall && (
+          <div className="flex items-center justify-center">
+            <video
+              ref={localVideoRef}
+              className="w-1/2 h-1/2 rounded-md shadow-md"
+              autoPlay
+              playsInline
+              muted
+            ></video>
+            <video
+              ref={remoteVideoRef}
+              className="w-1/2 h-1/2 rounded-md shadow-md"
+              autoPlay
+              playsInline
+            ></video>
+            <button
+              className="absolute top-4 right-4 text-white bg-red-500 hover:bg-red-600 p-2 rounded-full"
+              onClick={closeCallPopup}
+            >
+              <img src={callCancel} alt="Cancel Call" className="w-6 h-6" />
+            </button>
+          </div>
+        )
+      }
       {selectedUser ? (
         <>
-          <div className="flex items-center mb-4 border-b pb-2">
+          <div className="flex items-center mb-4 border-b py-2">
             {/* Kullanıcı Avatarı */}
             <img
               src={selectedUser.photo || "https://via.placeholder.com/50"}
@@ -373,9 +399,7 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
           </div>
         )
       }
-
-
-    </div >
+    </div>
   );
 };
 

@@ -8,7 +8,7 @@ from django.http import HttpResponse
 
 # Create your views here.
 from django.shortcuts import render
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.authentication import TokenAuthentication, BasicAuthentication, SessionAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from chat_app.authentication import BearerAuthentication
-from chat_app.serializers import RegistrationSerializer, UsersWithMessageSerializer, UserSerializer
+from chat_app.serializers import RegistrationSerializer, UsersWithMessageSerializer, UserSerializer, EditProfileSerializer
 
 
 class Login(ObtainAuthToken):
@@ -116,3 +116,21 @@ def test_socket(request):
         }
     )
     return HttpResponse("hello world")
+
+
+class EditProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, *args, **kwargs):
+        user = request.user
+        serializer = EditProfileSerializer(
+            user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            # Kullanıcı bilgilerini serialize et
+            user_serializer = UserSerializer(user, many=False)
+            return Response({
+                "message": "Profile updated successfully",
+                "user": user_serializer.data
+            }, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
