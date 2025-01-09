@@ -18,6 +18,7 @@ interface User {
   messages: Message[];
   peerId?: string;
   unreadMessages: number;
+  lastMessage?: Message;
 }
 
 interface IncomingCall {
@@ -127,6 +128,13 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Kullanıcı seçimi
   const handleSetSelectedUser = (user: User) => {
+    setSelectedUser((prevUser: User | null) => ({
+      ...user,
+      peerId: user.peerId || prevUser?.peerId,
+      unreadMessages: 0,
+    }));
+    console.log(user)
+
     apiClient.post(`/chat-app/read-messages/${user.username}`)
       .then(() => {
         setUsers((prevUsers) =>
@@ -137,11 +145,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           )
         );
 
-        setSelectedUser((prevUser: User | null) => ({
-          ...user,
-          peerId: user.peerId || prevUser?.peerId,
-          unreadMessages: 0,
-        }));
+
       })
       .catch((error) => {
         console.error("Error marking messages as read:", error);
@@ -164,6 +168,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       );
       return updatedUsers;
     });
+    console.log('selected user', selectedUser)
 
     if (selectedUser?.username === username) {
       setSelectedUser((prevSelectedUser) => {
