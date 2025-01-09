@@ -1,31 +1,74 @@
-import React, { useState } from 'react';
-import useChatStore from '../store/chatStore';
+import React, { useEffect, useState } from 'react';
 import plusIcon from '../../../assets/icons/plus.svg';
 import searchIcon from '../../../assets/icons/search.svg';
 import check from '../../../assets/icons/check.svg';
 import cancel from '../../../assets/icons/cancel.svg';
+import apiClient from '../utils/apiClient';
 
-type Props = {};
+const AddFriend: React.FC = () => {
+  const [friendRequests, setFriendRequests] = useState<any[]>([]);
+  const [isInputVisible, setIsInputVisible] = useState<boolean>(false);
+  const [username, setUsername] = useState<string>('');
 
-const AddFriend: React.FC<Props> = () => {
-  const { addFriend, friendRequests, acceptFriendRequest, declineFriendRequest } = useChatStore();
-  const [isInputVisible, setIsInputVisible] = useState(false);
-  const [username, setUsername] = useState('');
-
-  const handleAddFriend = () => {
+  const handleAddFriend = async () => {
     if (username.trim() === '') {
       return;
     }
-    addFriend(username);
-    setUsername('');
-    setIsInputVisible(false);
+
+    try {
+      const response = await apiClient.post('/chat-app/send-friend-request/', { username });
+      console.log('Friend request sent:', response.data);
+
+      setUsername('');
+      setIsInputVisible(false);
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+    }
   };
+
+  const acceptFriendRequest = async (username: string) => {
+    try {
+      const response = await apiClient.post('/chat-app/accept-friend-request/', { username });
+      console.log('Friend request accepted:', response.data);
+
+      fetchFriendRequests();
+    } catch (error) {
+      console.error('Error accepting friend request:', error);
+    }
+  };
+
+  const declineFriendRequest = async (username: string) => {
+    try {
+      const response = await apiClient.post('/chat-app/decline-friend-request/', { username });
+      console.log('Friend request declined:', response.data);
+
+      fetchFriendRequests();
+    } catch (error) {
+      console.error('Error declining friend request:', error);
+    }
+  };
+
+  const fetchFriendRequests = async () => {
+    try {
+      const response = await apiClient.get('/chat-app/pending-friend-requests/');
+      console.log('Pending friend requests fetched:', response.data);
+
+      setFriendRequests(response.data);
+    } catch (error) {
+      console.error('Error fetching friend requests:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchFriendRequests();
+  }, []);
 
   return (
     <div>
       <button
         onClick={() => setIsInputVisible(true)}
-        className="flex items-center justify-center w-8 h-8"
+        className="flex items-center justify-center w-10 h-10 rounded-r-full bg-gray-300 hover:bg-gray-400 text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all duration-200 shadow-sm"
+        aria-label="Add Friend"
       >
         <img src={plusIcon} alt="Add Friend" className="w-5 h-5" />
       </button>

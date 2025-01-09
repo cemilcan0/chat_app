@@ -1,6 +1,7 @@
 import React from "react";
 import { useChat } from "../context/ChatContext";
 import LogoutButton from "./logout-button";
+import AddFriend from "./add-friend";
 
 const Leftbar: React.FC = () => {
   const { users, selectedUser, setSelectedUser } = useChat();
@@ -22,6 +23,16 @@ const Leftbar: React.FC = () => {
           </div>
         </div>
         <LogoutButton />
+      </div>
+
+      <div className="flex items-center mb-4">
+        <input
+          type="text"
+          placeholder="Search for a user"
+          className="w-full p-2 rounded-l-lg border border-gray-300 focus:outline-none"
+        />
+
+        <AddFriend />
       </div>
 
       {/* Kullanıcı Listesi */}
