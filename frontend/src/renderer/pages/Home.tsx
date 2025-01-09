@@ -101,7 +101,7 @@ const Home: React.FC = () => {
           <div className="border-2 border-[#5C52C7] rounded-full overflow-hidden">
             <img
               src={`https://testapi.berat-dogan.com${user?.photo}` || photo}
-              className="w-20 h-20"
+              className="w-20 h-20 object-cover"
               alt="Profile"
             />
           </div>

@@ -7,7 +7,6 @@ const Leftbar: React.FC = () => {
   const { users, selectedUser, setSelectedUser } = useChat();
 
   return (
-
     <div className="w-1/3 bg-[#433259] flex flex-col">
       <div className=" p-4">
         {/* Giriş Yapmış Kullanıcı */}
@@ -23,7 +22,6 @@ const Leftbar: React.FC = () => {
           <AddFriend />
         </div>
       </div>
-      
 
       {/* Kullanıcı Listesi */}
       <div className="flex-grow overflow-y-auto text-white">

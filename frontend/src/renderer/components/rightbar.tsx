@@ -165,29 +165,32 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
     <div className="w-2/3 bg-white p-4 flex flex-col">
       {/* Video Alanı */}
       {
-        isCalling && isVideoCall && (
-          <div className="flex items-center justify-center">
+        <div className="border-b">
+          <div className="flex items-center space-x-4 justify-center">
             <video
               ref={localVideoRef}
-              className="w-1/2 h-1/2 rounded-md shadow-md"
               autoPlay
-              playsInline
               muted
+              className="h-auto aspect-video bg-black"
             ></video>
             <video
               ref={remoteVideoRef}
-              className="w-1/2 h-1/2 rounded-md shadow-md"
               autoPlay
-              playsInline
+              className="h-auto aspect-video bg-black"
             ></video>
-            <button
-              className="absolute top-4 right-4 text-white bg-red-500 hover:bg-red-600 p-2 rounded-full"
-              onClick={closeCallPopup}
-            >
-              <img src={callCancel} alt="Cancel Call" className="w-6 h-6" />
+          </div>
+          <div className="flex justify-center space-x-4 py-4">
+            <button>
+              <img src={microphone} alt="" className="w-6 h-6" />
+            </button>
+            <button>
+              <img src={camera} alt="" className="w-6 h-6" />
+            </button>
+            <button>
+              <img src={callCancel} alt="" className="w-6 h-6" />
             </button>
           </div>
-        )
+        </div>
       }
       {selectedUser ? (
         <>
@@ -196,7 +199,7 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
             <img
               src={selectedUser.photo || "https://via.placeholder.com/50"}
               alt="User Avatar"
-              className="w-12 h-12 rounded-full mr-4"
+              className="w-12 h-12 rounded-full mr-4 object-cover"
             />
             {/* Kullanıcı Bilgileri */}
             <div className="flex-1">
@@ -267,7 +270,7 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
                       <img
                         src={selectedUser?.photo || dummyPhoto}
                         alt={selectedUser?.name || "User"}
-                        className="w-8 h-8 rounded-full mr-2"
+                        className="w-8 h-8 rounded-full mr-2 object-cover"
                       />
                     )}
                     <div className="flex items-center max-w-full">
@@ -313,7 +316,7 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
                       <img
                         src={`https://testapi.berat-dogan.com${loggedInUser?.photo}` || dummyPhoto}
                         alt={loggedInUser?.name || "User"}
-                        className="w-8 h-8 rounded-full ml-2"
+                        className="w-8 h-8 rounded-full ml-2 object-cover"
                       />
                     )}
                   </div>

@@ -65,7 +65,7 @@ const Chat: React.FC = () => {
             <img
               src={activeChat.photo || dummyPhoto}
               alt={activeChat.name}
-              className="w-8 h-8 rounded-full"
+              className="w-8 h-8 rounded-full object-cover"
             />
           )}
           <div
@@ -88,7 +88,7 @@ const Chat: React.FC = () => {
             <img
               src={`https://testapi.berat-dogan.com${user?.photo}` || dummyPhoto}
               alt={user?.name || 'User'}
-              className="w-8 h-8 rounded-full"
+              className="w-8 h-8 rounded-full object-cover"
             />
           )}
         </div>
@@ -113,7 +113,7 @@ const Chat: React.FC = () => {
               <img
                 src={activeChat.photo || dummyPhoto}
                 alt={activeChat.name}
-                className="w-12 h-12 rounded-full border-2 border-gray-600"
+                className="w-12 h-12 rounded-full border-2 border-gray-600 object-cover"
               />
               <div>
                 <h2 className="font-semibold text-lg text-white">{activeChat.name}</h2>

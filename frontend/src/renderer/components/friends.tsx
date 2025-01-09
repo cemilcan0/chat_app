@@ -34,7 +34,7 @@ const Friends: React.FC = () => {
               <img
                 src={chat.photo || dummyPhoto}
                 alt={`${chat.name}'s profile`}
-                className="w-12 h-12 rounded-full"
+                className="w-12 h-12 rounded-full object-cover"
               />
               <div
                 className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1A1A22] ${
