@@ -3,6 +3,7 @@ export interface UserType {
   username: string;
   photo: string;
   status: string;
+  peerId?: string;
 }
 
 export interface ChatType {

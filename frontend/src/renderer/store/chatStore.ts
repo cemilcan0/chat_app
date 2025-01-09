@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import Peer from 'peerjs';
-import apiClient from '../apiClient';
+import apiClient from '../utils/apiClient';
 import { ChatStateType, ChatType, MessageType } from '../types';
 
 const useChatStore = create<ChatStateType>((set, get) => ({
