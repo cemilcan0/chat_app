@@ -64,7 +64,7 @@ const Profile: React.FC<Props> = () => {
 
   return (
     <div>
-      <div className="flex justify-between rounded-lg p-4 shadow-md mb-4 bg-black bg-opacity-10">
+      <div className="flex justify-between rounded-lg p-4 shadow-md mb-4 bg-black bg-opacity-20">
         <div className="flex items-center">
           <img
             src={`https://testapi.berat-dogan.com${storedUser.photo}` || 'https://via.placeholder.com/50'}
