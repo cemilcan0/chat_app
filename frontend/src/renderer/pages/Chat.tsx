@@ -5,11 +5,12 @@ import useChatStore from "../store/chatStore";
 import { useCall } from "../context/CallContext";
 
 const Chat: React.FC = () => {
-  const { incomingCall } = useChatStore();
-  const { localVideoRef, remoteVideoRef, acceptCall } = useCall();
+  const { incomingCall, setIncomingCall } = useChatStore();
+  const { acceptCall } = useCall();
 
   const closePopup = () => {
     // Logic to close the popup
+    setIncomingCall(null);
   };
 
   return (
@@ -32,7 +33,7 @@ const Chat: React.FC = () => {
             <div className="flex justify-center space-x-4">
               <button
                 className="bg-green-500 text-white px-4 py-2 rounded"
-                onClick={() => acceptCall(incomingCall.callerPeerId)}
+                onClick={() => acceptCall(incomingCall, setIncomingCall)}
               >
                 Accept
               </button>

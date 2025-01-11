@@ -51,6 +51,16 @@ const Rightbar: React.FC = () => {
     // Implement the logic to close the call popup
   };
 
+  const handleStartCall = async (isVideoCall: boolean) => {
+    try {
+      if (selectedUser) {
+        await startCall(isVideoCall, selectedUser);
+      }
+    } catch (error) {
+      console.error("Error starting call:", error);
+    }
+  };
+
   return (
     <div className="w-2/3 bg-white p-4 flex flex-col">
       {/* Video Alanı */}
@@ -97,13 +107,13 @@ const Rightbar: React.FC = () => {
             </div>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => startCall(false, selectedUser.username)}
+                onClick={() => handleStartCall(false)}
                 className="text-gray-400 hover:text-gray-600 p-2 rounded-full"
               >
                 <img src={phone} alt="Voice Call" className="w-6 h-6" />
               </button>
               <button
-                onClick={() => startCall(true, selectedUser.username)}
+                onClick={() => handleStartCall(true)}
                 className="text-gray-400 hover:text-gray-600 p-2 rounded-full"
               >
                 <img src={camera} alt="Video Call" className="w-6 h-6" />
