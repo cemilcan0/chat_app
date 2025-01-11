@@ -4,6 +4,7 @@ import phone from "../../../assets/icons/phone-call.svg";
 import camera from "../../../assets/icons/camera.svg";
 import microphone from "../../../assets/icons/microphone.svg";
 import callCancel from "../../../assets/icons/call-cancel.svg";
+import info from "../../../assets/icons/info.svg";
 import dummyPhoto from "../../../assets/images/photo.jpg";
 import Peer from "peerjs";
 import apiClient from "../utils/apiClient";
@@ -150,7 +151,14 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
                 className="text-gray-400 hover:text-gray-600 flex items-center justify-center p-2 rounded-full"
                 onClick={() => startCall(true)} // Görüntülü arama
               >
-                <img src={camera} alt="Video Call" className="w-6 h-6" />
+                <img src={camera} alt="Video Call" className="w-7 h-7" />
+              </button>
+
+              <button
+                className="text-gray-400 hover:text-gray-600 flex items-center justify-center p-2 rounded-full"
+                onClick={() => alert(`User Info: \nName: ${selectedUser.name}\nStatus: ${selectedUser.status}`)} // Kullanıcı bilgilerini göster
+              >
+                <img src={info} alt="İnformation" className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -186,8 +194,8 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
                   <div
                     key={index}
                     className={`flex items-center mb-2 ${msg.sender === loggedInUser.username
-                        ? "justify-end mr-2"
-                        : "justify-start ml-2"
+                      ? "justify-end mr-2"
+                      : "justify-start ml-2"
                       }`}
                   >
                     {msg.sender !== loggedInUser?.username && (
@@ -210,8 +218,8 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
                       )}
                       <div
                         className={`relative p-2 rounded-md w-fit max-w-xs ${msg.sender === loggedInUser.username
-                            ? "bg-[#76589A] text-white"
-                            : "bg-[#D4D4D7] text-black"
+                          ? "bg-[#76589A] text-white"
+                          : "bg-[#D4D4D7] text-black"
                           }`}
                       >
                         <p className="break-words text-sm overflow-hidden">
@@ -219,8 +227,8 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
                         </p>
                         <span
                           className={`absolute top-1/2 ${msg.sender === loggedInUser.username
-                              ? "right-[-8px]"
-                              : "left-[-8px]"
+                            ? "right-[-8px]"
+                            : "left-[-8px]"
                             } transform -translate-y-1/2 w-0 h-0 border-t-[8px] border-t-transparent ${msg.sender === loggedInUser.username
                               ? "border-l-[8px] border-l-[#76589A]"
                               : "border-r-[8px] border-r-[#D4D4D7]"
