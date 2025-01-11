@@ -1,11 +1,11 @@
 import React, { useRef } from "react";
 import Leftbar from "../components/leftbar";
 import Rightbar from "../components/rightbar";
-import { useChat } from "../context/ChatContext";
+import useChatStore from "../store/chatStore";
 import apiClient from "../utils/apiClient"; // Backend ile iletişim için
 
 const Chat: React.FC = () => {
-  const { incomingCall, setIncomingCall, acceptCall } = useChat();
+  const { incomingCall, setIncomingCall, acceptCall } = useChatStore();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);

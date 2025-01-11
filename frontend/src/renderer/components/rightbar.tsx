@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useChat } from "../context/ChatContext";
+import useChatStore from "../store/chatStore";
 import phone from "../../../assets/icons/phone-call.svg";
 import camera from "../../../assets/icons/camera.svg";
 import microphone from "../../../assets/icons/microphone.svg";
 import callCancel from "../../../assets/icons/call-cancel.svg";
-import dummyPhoto from '../../../assets/images/photo.jpg';
+import dummyPhoto from "../../../assets/images/photo.jpg";
 import Peer from "peerjs";
 import apiClient from "../utils/apiClient";
 
@@ -14,12 +14,11 @@ interface RightbarProps {
 }
 
 const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) => {
-  const { selectedUser, addMessage } = useChat();
+  const { selectedUser, sendMessage } = useChatStore();
   const [message, setMessage] = useState("");
   const messageEndRef = useRef<HTMLDivElement>(null);
 
   const [isCalling, setIsCalling] = useState(false); // Popup göstermek için state
-  const [isVideoCall, setIsVideoCall] = useState(false); // Aramanın türü (sesli/görüntülü)
   const [isWaitingForAcceptance, setIsWaitingForAcceptance] = useState(false); // Arama kabul durumu
 
   const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -33,24 +32,11 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
     scrollToBottom();
   }, [selectedUser?.messages]);
 
-  const sendMessage = async () => {
+  const handleSendMessage = async () => {
     if (selectedUser && message.trim() !== "") {
-      const msg = {
-        text: message,
-        sender: loggedInUser.username,
-        receiver: selectedUser.username,
-        date_time: new Date().toISOString(),
-        read: true,
-      };
-
       try {
-        await apiClient.post("/chat-app/message/", {
-          text: msg.text,
-          receiver: msg.receiver,
-        });
-
-        addMessage(selectedUser.username, msg);
-        setMessage("");
+        await sendMessage(message, loggedInUser); // Zustand'daki `sendMessage` fonksiyonu
+        setMessage(""); // Mesaj gönderildikten sonra input alanını temizle
       } catch (error) {
         console.error("Mesaj gönderilirken hata oluştu:", error);
       }
@@ -59,7 +45,7 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    sendMessage();
+    handleSendMessage();
   };
 
   // Arama başlatma isteği
@@ -80,70 +66,6 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
           peer_id: peerId,
           is_video_call: isVideoCall, // Arama türü: sesli/görüntülü
         });
-      });
-
-      // Arama çağrısı yanıtlandığında
-      peer.on("call", (call) => {
-        console.log("Arama kabul edildi, bağlanılıyor...");
-        setIsWaitingForAcceptance(false); // Arama bekleme durumu sıfırla
-        setIsCalling(false); // Popup'u kapat
-
-        // Medya cihazlarına erişim
-        navigator.mediaDevices
-          .getUserMedia({ video: isVideoCall, audio: true })
-          .then((stream) => {
-            call.answer(stream); // Aramayı yanıtla
-
-            // Yerel video akışını ayarla ve oynat
-            if (localVideoRef.current) {
-              localVideoRef.current.srcObject = stream;
-
-              // Oynatma işlemi için Promise kullan
-              const playPromise = localVideoRef.current.play();
-              if (playPromise !== undefined) {
-                playPromise
-                  .then(() => {
-                    console.log("Yerel video oynatılıyor...");
-                  })
-                  .catch((err) => {
-                    console.error("Yerel video oynatma hatası:", err);
-                  });
-              }
-            }
-
-            // Uzak video akışını dinle
-            call.on("stream", (remoteStream) => {
-              console.log("Uzak akış alındı");
-              if (remoteVideoRef.current) {
-                // Eğer akış farklıysa yeni akışı ata
-                if (remoteVideoRef.current.srcObject !== remoteStream) {
-                  remoteVideoRef.current.srcObject = remoteStream;
-
-                  // Metadata yüklendiğinde oynat
-                  remoteVideoRef.current.addEventListener("loadedmetadata", () => {
-                    const playPromise = remoteVideoRef.current?.play();
-                    if (playPromise !== undefined) {
-                      playPromise
-                        .then(() => {
-                          console.log("Uzak video oynatılıyor...");
-                        })
-                        .catch((err) => {
-                          console.error("Uzak video oynatma hatası:", err);
-                        });
-                    }
-                  });
-                }
-              }
-            });
-
-            call.on("error", (err) => {
-              console.error("Call error:", err);
-            });
-          })
-          .catch((err) => {
-            console.error("Medya cihazına erişim hatası:", err);
-            setIsCalling(false); // Hata durumunda popup'u kapat
-          });
       });
 
       peer.on("error", (err) => {

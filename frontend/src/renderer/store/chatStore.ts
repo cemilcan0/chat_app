@@ -1,407 +1,258 @@
-import { create } from 'zustand';
-import Peer from 'peerjs';
-import apiClient from '../utils/apiClient';
-import { ChatStateType, ChatType, MessageType } from '../types';
+import { create } from "zustand";
+import apiClient from "../utils/apiClient";
+import websocketService from "../utils/websocket";
+import { UserType, MessageType } from "../types";
+import Peer from "peerjs";
 
-const useChatStore = create<ChatStateType>((set, get) => ({
-  chats: [],
-  activeChat: null,
-  user: null,
-  socket: null,
-  notificationSocket: null,
-  friendRequests: [],
+interface IncomingCall {
+  callerName: string;
+  callerPhoto: string;
+  callerPeerId: string;
+}
+
+interface ChatStore {
+  users: UserType[];
+  selectedUser: UserType | null;
+  incomingCall: IncomingCall | null;
+  fetchUsers: () => Promise<void>;
+  setSelectedUser: (user: UserType | null) => void;
+  setIncomingCall: (call: IncomingCall | null) => void;
+  sendMessage: (messageText: string, loggedInUser: UserType) => Promise<void>;
+  initializeSocket: (url: string) => void;
+  closeSocket: () => void;
+  acceptCall: (
+    localVideoRef: HTMLVideoElement,
+    remoteVideoRef: HTMLVideoElement
+  ) => void;
+}
+
+const useChatStore = create<ChatStore>((set, get) => ({
+  users: [],
+  selectedUser: null,
   incomingCall: null,
-  peer: null, // PeerJS nesnesi
-  localStream: null, // Yerel medya akışı
-  remoteStream: null, // Uzaktan gelen medya akışı
 
-  // Chatleri getir
-  fetchChats: async () => {
+  fetchUsers: async () => {
     try {
-      const response = await apiClient.get('/chat-app/friends/');
+      const response = await apiClient.get("/chat-app/friends/");
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
 
-      const chatsWithUnread = response.data.map((chat: ChatType) => {
-        const unreadCount = chat.messages.filter((message: MessageType) => !message.read).length;
-        return { ...chat, unreadCount };
-      });
+      const fetchedUsers: UserType[] = response.data.map((user: UserType) => ({
+        ...user,
+        unreadMessages: user.messages.filter(
+          (msg) => !msg.read && msg.sender !== storedUser.username
+        ).length,
+      }));
 
-      set({ chats: chatsWithUnread });
+      set({ users: fetchedUsers });
     } catch (error) {
-      console.error('Error fetching chats:', error);
+      console.error("Error fetching users and messages:", error);
     }
   },
 
-  // Arkadaşlık isteklerini getir
-  fetchFriendRequests: async () => {
-    try {
-      const response = await apiClient.get('/chat-app/pending-friend-requests/');
-      console.log('Pending friend requests fetched:', response.data);
+  setSelectedUser: (user: UserType | null) => {
+    set({ selectedUser: user });
 
-      set({ friendRequests: response.data });
-    } catch (error) {
-      console.error('Error fetching pending friend requests:', error);
-    }
-  },
-
-  // Mesaj gönder
-  sendMessage: async (text, receiver) => {
-    const { socket, user, activeChat, chats } = get();
-
-    if (socket) {
-      socket.send(
-        JSON.stringify({
-          type: 'new_message',
-          message: text,
-          receiver: receiver,
+    if (user) {
+      apiClient
+        .post(`/chat-app/read-messages/${user.username}`)
+        .then(() => {
+          set((state) => ({
+            users: state.users.map((u) =>
+              u.username === user.username
+                ? { ...u, unreadMessages: 0 }
+                : u
+            ),
+          }));
         })
-      );
-    } else {
-      console.warn('WebSocket is not connected!');
+        .catch((error) => {
+          console.error("Error marking messages as read:", error);
+        });
     }
+  },
+
+  setIncomingCall: (call: IncomingCall | null) => {
+    set({ incomingCall: call });
+  },
+
+  sendMessage: async (messageText: string, loggedInUser: UserType) => {
+    const { selectedUser } = get();
+    if (!selectedUser || messageText.trim() === "") return;
+
+    const newMessage = {
+      text: messageText,
+      sender: loggedInUser.username,
+      receiver: selectedUser.username,
+      date_time: new Date().toISOString(),
+      read: true,
+    };
 
     try {
-      const response = await apiClient.post('/chat-app/message/', {
-        text: text,
-        receiver: receiver,
-        sender: user?.username,
+      await apiClient.post("/chat-app/message/", {
+        text: newMessage.text,
+        receiver: newMessage.receiver,
       });
 
-      const newMessage = {
-        text: text,
-        sender: user?.username || 'unknown',
-        date_time: new Date().toISOString(),
-        read: true,
-      };
-
-      const updatedChats = chats.map((chat) =>
-        chat.username === activeChat?.username
-          ? { ...chat, messages: [...chat.messages, newMessage] }
-          : chat
-      );
-
-      const updatedActiveChat = activeChat
-        ? { ...activeChat, messages: [...activeChat.messages, newMessage] }
-        : null;
-
-      set({ chats: updatedChats, activeChat: updatedActiveChat });
-    } catch (error) {
-      console.error('Error sending message via POST:', error);
-    }
-  },
-
-  // Aktif chati belirle
-  setActiveChat: (chat) => {
-    set({ activeChat: chat });
-  },
-
-  // Gelen çağrıyı ayarlamak veya sıfırlamak için fonksiyon
-  setIncomingCall: (callData) => {
-    set({ incomingCall: callData });
-  },
-
-  // Kullanıcı bilgilerini yükle
-  loadUser: () => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      set({ user: JSON.parse(userData) });
-    } else {
-      console.warn('No user found in localStorage!');
-    }
-  },
-
-  // Arkadaşlık isteği gönder
-  addFriend: async (username) => {
-    try {
-      const response = await apiClient.post('/chat-app/send-friend-request/', { username });
-      console.log('Friend request sent:', response.data);
-    } catch (error) {
-      console.error('Error sending friend request:', error);
-    }
-  },
-
-  // Arkadaşlık isteğini kabul et
-  acceptFriendRequest: async (username) => {
-    try {
-      const response = await apiClient.post('/chat-app/accept-friend-request/', { username });
-      console.log('Friend request accepted:', response.data);
-
       set((state) => ({
-        friendRequests: state.friendRequests.filter((request) => request.username !== username),
-      }));
-    } catch (error) {
-      console.error('Error accepting friend request:', error);
-    }
-  },
-
-  // Arkadaşlık isteğini reddet
-  declineFriendRequest: async (username) => {
-    try {
-      const response = await apiClient.post('/chat-app/decline-friend-request/', { username });
-      console.log('Friend request declined:', response.data);
-
-      set((state) => ({
-        friendRequests: state.friendRequests.filter((request) => request.username !== username),
-      }));
-    } catch (error) {
-      console.error('Error declining friend request:', error);
-    }
-  },
-
-  // PeerJS bağlantısını başlat
-  connectPeer: (peerId: string) => {
-    const peer = new Peer(peerId);
-
-    peer.on('open', (id) => {
-      console.log('PeerJS connected with ID:', id);
-      set({ peer });
-    });
-
-    peer.on('call', (call) => {
-      console.log('Incoming call:', call);
-
-      // Çağrıyı kabul etme işlemi
-      const acceptCall = async () => {
-        try {
-          // Yerel medya akışını al
-          const localStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
-          });
-          set({ localStream });
-
-          // Çağrıyı cevapla ve yerel akışı gönder
-          call.answer(localStream);
-
-          // Uzak akışı al
-          call.on('stream', (remoteStream) => {
-            console.log('Remote stream received');
-            set({ remoteStream });
-          });
-
-          // Çağrı sonlandırıldığında
-          call.on('close', () => {
-            console.log('Call ended');
-            set({ remoteStream: null, localStream: null });
-          });
-
-          call.on('error', (err: Error) => {
-            console.error('Error during call:', err);
-          });
-        } catch (error) {
-          console.error('Error accepting call:', error);
-        }
-      };
-
-      // Çağrıyı `incomingCall` olarak sakla
-      set({
-        incomingCall: {
-          call,
-          accept: acceptCall,
-          display: {
-            photo: 'https://example.com/default-photo.jpg', // Örnek fotoğraf URL'si
-            name: 'Unknown Caller', // Çağrıyı yapan kişinin adı
-            status: 'Incoming call...', // Çağrı durumu
-          },
+        users: state.users.map((user) =>
+          user.username === selectedUser.username
+            ? {
+              ...user,
+              messages: [...user.messages, newMessage],
+            }
+            : user
+        ),
+        selectedUser: {
+          ...selectedUser,
+          messages: [...selectedUser.messages, newMessage],
         },
-      });
-    });
-
-    peer.on('error', (err: Error) => {
-      console.error('PeerJS error:', err);
-    });
+      }));
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
   },
 
-  // Sesli çağrı başlat
-  startCall: async (receiverPeerId: string) => {
-    const { peer, user } = get();
+  initializeSocket: (url: string) => {
+    websocketService.connect(url);
 
-    if (!peer) {
-      console.error('PeerJS instance not initialized!');
-      return;
-    }
+    websocketService.onMessage((data) => {
+      if (data.status === "new_message") {
+        const { sender, text, date_time } = data.message;
+        const newMessage: MessageType = { text, sender, date_time, read: false };
 
-    try {
-      // First check if peer is connected
-      if (peer.disconnected) {
-        await new Promise((resolve) => {
-          peer.reconnect();
-          peer.on('open', resolve);
+        set((state) => ({
+          users: state.users.map((user) =>
+            user.username === sender
+              ? {
+                ...user,
+                messages: [...user.messages, newMessage],
+                unreadMessages:
+                  user.username === state.selectedUser?.username
+                    ? user.unreadMessages
+                    : user.unreadMessages + 1,
+              }
+              : user
+          ),
+        }));
+
+        if (get().selectedUser?.username === sender) {
+          set((state) => ({
+            selectedUser: {
+              ...state.selectedUser!,
+              messages: [...state.selectedUser!.messages, newMessage],
+            },
+          }));
+        }
+      } else if (data.status === "new_call") {
+        set({
+          incomingCall: {
+            callerName: data.message.display.name,
+            callerPhoto: data.message.display.photo,
+            callerPeerId: data.message.data.peer_id,
+          },
         });
       }
-
-      const localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      set({ localStream });
-
-      // Check if receiver exists before calling
-      const connection = peer.connect(receiverPeerId);
-      await new Promise((resolve, reject) => {
-        connection.on('open', resolve);
-        connection.on('error', reject);
-        // Set a timeout of 5 seconds
-        setTimeout(() => reject(new Error('Connection timeout')), 1000);
-      });
-
-      console.log(`Calling peer: ${receiverPeerId}`);
-      const call = peer.call(receiverPeerId, localStream);
-      console.log('Call started:', call);
-
-      call.on('stream', (remoteStream: MediaStream) => {
-        console.log('Remote stream received');
-        set({ remoteStream });
-      });
-
-      call.on('close', () => {
-        console.log('Call ended');
-        set({ remoteStream: null });
-      });
-
-      call.on('error', (err: Error) => {
-        console.error('Error during call:', err);
-      });
-    } catch (error) {
-      console.error('Error starting call:', error);
-    }
-    
-    if (!user) {
-      throw new Error('User is not logged in');
-    }
-
-    const response = await apiClient.post('/chat-app/start-call/', {
-      sender: user.username,
-      receiver: 'cemo',
-      peer_id: 'cemo-peer-id',
-      offer: 'fsafasfsa', // offer bilgisi gönderiliyor
-    })
-
-    console.log('Call successfully started:', response.data);
+    });
   },
 
-  // Çağrıyı sonlandır
-  endCall: () => {
-    const { peer, localStream, remoteStream } = get();
-
-    if (localStream) {
-      localStream.getTracks().forEach((track) => track.stop());
-      set({ localStream: null });
-    }
-
-    if (remoteStream) {
-      remoteStream.getTracks().forEach((track) => track.stop());
-      set({ remoteStream: null });
-    }
-
-    if (peer) {
-      peer.disconnect();
-      set({ peer: null });
-    }
-
-    console.log('Call ended');
+  closeSocket: () => {
+    websocketService.close();
   },
 
-  // Gelen çağrıyı kabul et
-  acceptCall: async () => {
+  acceptCall: (
+    localVideoRef: HTMLVideoElement,
+    remoteVideoRef: HTMLVideoElement
+  ) => {
     const { incomingCall } = get();
+    if (!incomingCall) return;
 
-    if (!incomingCall) {
-      console.error('No incoming call to accept!');
-      return;
-    }
+    const peer = new Peer();
 
-    try {
-      await incomingCall.accept();
-      set({ incomingCall: null });
-    } catch (error) {
-      console.error('Error accepting call:', error);
-    }
-  },
+    peer.on("open", () => {
+      console.log("Peer connected with ID:", peer.id);
 
-  // Gelen çağrıyı reddet
-  rejectCall: () => {
-    const { incomingCall } = get();
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then((stream) => {
+          localVideoRef.srcObject = stream;
+          const localPlayPromise = localVideoRef.play();
+          if (localPlayPromise !== undefined) {
+            localPlayPromise
+              .then(() => {
+                console.log("Local video is playing...");
+              })
+              .catch((error) => {
+                console.error("Error while playing local video:", error);
+              });
+          }
 
-    if (incomingCall) {
-      incomingCall.call.close();
-      set({ incomingCall: null });
-    }
+          const call = peer.call(incomingCall.callerPeerId, stream);
 
-    console.log('Call rejected');
-  },
+          call.on("stream", (remoteStream: MediaStream) => {
+            console.log("Remote stream received:", remoteStream);
 
-  // Mesaj WebSocket bağlantısını başlat
-  connectMessageSocket: (username) => {
-    const socket = new WebSocket(`wss://testapi.berat-dogan.com/ws/message/${username}/`);
+            if (remoteVideoRef.srcObject !== remoteStream) {
+              remoteVideoRef.srcObject = remoteStream;
 
-    socket.onopen = () => {
-      console.log('Message WebSocket connected');
-    };
+              remoteVideoRef.addEventListener("loadedmetadata", () => {
+                const remotePlayPromise = remoteVideoRef.play();
+                if (remotePlayPromise !== undefined) {
+                  remotePlayPromise
+                    .then(() => {
+                      console.log("Remote video is playing...");
+                    })
+                    .catch((error) => {
+                      console.error("Error while playing remote video:", error);
+                    });
+                }
+              });
+            }
+          });
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+          call.on("error", (err) => {
+            console.error("Call error:", err);
+          });
+        })
+        .catch((err) => console.error("Error accessing media devices:", err));
+    });
 
-      if (data.status === 'new_message') {
-        const newMessage = {
-          text: data.message.text,
-          sender: data.message.sender,
-          date_time: data.message.date_time,
-          read: data.message.read,
-        };
+    peer.on("call", (call) => {
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then((stream) => {
+          call.answer(stream);
+          localVideoRef.srcObject = stream;
 
-        const { chats, activeChat } = get();
+          const localPlayPromise = localVideoRef.play();
+          if (localPlayPromise !== undefined) {
+            localPlayPromise
+              .then(() => {
+                console.log("Local video is playing...");
+              })
+              .catch((error) => {
+                console.error("Error while playing local video:", error);
+              });
+          }
 
-        const updatedChats = chats.map((chat) =>
-          chat.username === data.message.sender
-            ? { ...chat, messages: [...chat.messages, newMessage] }
-            : chat
-        );
+          call.on("stream", (remoteStream: MediaStream) => {
+            console.log("Remote stream received");
+            remoteVideoRef.srcObject = remoteStream;
 
-        set({ chats: updatedChats });
+            const remotePlayPromise = remoteVideoRef.play();
+            if (remotePlayPromise !== undefined) {
+              remotePlayPromise
+                .then(() => {
+                  console.log("Remote video is playing...");
+                })
+                .catch((error) => {
+                  console.error("Error while playing remote video:", error);
+                });
+            }
+          });
+        })
+        .catch((err) => console.error("Error accessing media devices:", err));
+    });
 
-        if (activeChat && activeChat.username === data.message.sender) {
-          set({ activeChat: { ...activeChat, messages: [...activeChat.messages, newMessage] } });
-        }
-      } else if (data.status === 'new_call') {
-        console.log('Incoming call:', data);
-
-        const incomingCallData = {
-          ...data.message,
-        };
-
-        set({ incomingCall: incomingCallData });
-      }
-    };
-
-    socket.onclose = () => {
-      console.log('Message WebSocket disconnected');
-      set({ socket: null });
-    };
-
-    set({ socket });
-  },
-
-  // Bildirim WebSocket bağlantısını başlat
-  connectNotificationSocket: () => {
-    const notificationSocket = new WebSocket(`wss://testapi.berat-dogan.com/ws/notification/`);
-
-    notificationSocket.onopen = () => {
-      console.log('Notification WebSocket connected');
-    };
-
-    notificationSocket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.status === 'new_user') {
-        console.log('Processing new user notification:', data.message);
-      }
-    };
-
-    notificationSocket.onclose = () => {
-      console.log('Notification WebSocket disconnected');
-      set({ notificationSocket: null });
-    };
-
-    set({ notificationSocket });
+    set({ incomingCall: null });
   },
 }));
 

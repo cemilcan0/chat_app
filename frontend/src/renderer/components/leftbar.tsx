@@ -1,10 +1,10 @@
 import React from "react";
-import { useChat } from "../context/ChatContext";
+import useChatStore from "../store/chatStore";
 import AddFriend from "./add-friend";
 import Profile from "./profile";
 
 const Leftbar: React.FC = () => {
-  const { users, selectedUser, setSelectedUser } = useChat();
+  const { users, selectedUser, setSelectedUser } = useChatStore();
 
   return (
     <div className="w-1/3 bg-[#433259] flex flex-col">
@@ -34,7 +34,7 @@ const Leftbar: React.FC = () => {
           return (
             <div
               key={user.username}
-              className={`p-4 mb-2 cursor-pointer rounded-lg flex items-center relative ${selectedUser?.username === user.username
+              className={`p-4 mb-2 cursor-pointer rounded-lg flex items-center relative ${selectedUser?.username === user.username ? "bg-[#76589A]" : ""
                 } hover:bg-[#76589A] transition-colors duration-200`}
               onClick={() => setSelectedUser(user)}
             >
@@ -77,7 +77,6 @@ const Leftbar: React.FC = () => {
           );
         })}
       </div>
-
     </div>
   );
 };
