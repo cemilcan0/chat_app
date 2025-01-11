@@ -2,43 +2,20 @@ import React, { useRef } from "react";
 import Leftbar from "../components/leftbar";
 import Rightbar from "../components/rightbar";
 import useChatStore from "../store/chatStore";
-import apiClient from "../utils/apiClient"; // Backend ile iletişim için
+import { useCall } from "../context/CallContext";
 
 const Chat: React.FC = () => {
-  const { incomingCall, setIncomingCall, acceptCall } = useChatStore();
+  const { incomingCall } = useChatStore();
+  const { localVideoRef, remoteVideoRef, acceptCall } = useCall();
 
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
-
-  const handleAcceptCall = () => {
-    if (localVideoRef.current && remoteVideoRef.current) {
-      acceptCall(localVideoRef.current, remoteVideoRef.current);
-    } else {
-      console.error("Video elementleri bulunamadı!");
-    }
-  };
-
-  const closePopup = async () => {
-    if (incomingCall) {
-      try {
-        // Backend'e arama reddedildiğini bildir
-        await apiClient.post("/chat-app/reject-call/", {
-          caller: incomingCall.callerName,
-        });
-      } catch (error) {
-        console.error("Arama reddedilirken bir hata oluştu:", error);
-      }
-    }
-    setIncomingCall(null); // Popup'u kapat
+  const closePopup = () => {
+    // Logic to close the popup
   };
 
   return (
     <div className="flex h-screen">
       <Leftbar />
-      <Rightbar
-        localVideoRef={localVideoRef}
-        remoteVideoRef={remoteVideoRef}
-      />
+      <Rightbar />
 
       {/* Gelen Arama Popup'ı */}
       {incomingCall && (
@@ -55,7 +32,7 @@ const Chat: React.FC = () => {
             <div className="flex justify-center space-x-4">
               <button
                 className="bg-green-500 text-white px-4 py-2 rounded"
-                onClick={handleAcceptCall}
+                onClick={() => acceptCall(incomingCall.callerPeerId)}
               >
                 Accept
               </button>

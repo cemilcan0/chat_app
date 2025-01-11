@@ -6,63 +6,63 @@ import Chat from "./pages/Chat";
 import PrivateRoute from "./routes/PrivateRoute";
 import PublicRoute from "./routes/PublicRoute";
 import { NotificationProvider } from "./context/NotificationContext";
-import NotificationList from "./components/notification-list";
-import useChatStore from "./store/chatStore"; // Zustand store
-import "./App.css";
+import { CallProvider } from "./context/CallContext";
+import useChatStore from "./store/chatStore";
+import './App.css'
 
-const App = () => {
-  const { fetchUsers, initializeSocket, closeSocket } = useChatStore();
+const App: React.FC = () => {
+  const { initializeSocket, closeSocket, fetchUsers } = useChatStore();
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
 
     if (storedUser && storedUser.username) {
       const socketUrl = `wss://testapi.berat-dogan.com/ws/message/${storedUser.username}/`;
-      initializeSocket(socketUrl); // WebSocket bağlantısını başlat
+      initializeSocket(socketUrl);
     }
 
     return () => {
-      closeSocket(); // Uygulama kapanırken WebSocket bağlantısını kapat
+      closeSocket();
     };
   }, [initializeSocket, closeSocket]);
 
   useEffect(() => {
-    // Kullanıcıları ve mesajları API'den çek
     fetchUsers();
-  }, [fetchUsers]); // fetchUsers bağımlılık olarak eklendi
+  }, [fetchUsers])
 
   return (
     <NotificationProvider>
-      <Router basename="/">
-        <NotificationList />
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <PublicRoute>
-                <Register />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/chat"
-            element={
-              <PrivateRoute>
-                <Chat />
-              </PrivateRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </Router>
+      <CallProvider>
+        <Router>
+          <Routes>
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <Register />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/chat"
+              element={
+                <PrivateRoute>
+                  <Chat />
+                </PrivateRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Router>
+      </CallProvider>
     </NotificationProvider>
   );
 };
