@@ -159,11 +159,11 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
           {/* Mesaj listesi */}
           <div className="flex-grow overflow-y-auto">
             {(() => {
-              const messagesWithSeparators: JSX.Element[] = []; // Tip açıkça belirtildi
-              let lastDate: string | null = null; // Tarih tipi string veya null olabilir
+              const messagesWithSeparators: JSX.Element[] = [];
+              let lastDate: string | null = null;
 
               selectedUser.messages.forEach((msg, index) => {
-                const messageDate = new Date(msg.date_time).toDateString(); // Tarihi al
+                const messageDate = new Date(msg.date_time).toDateString();
 
                 // Tarih separatoru ekle
                 if (messageDate !== lastDate) {
@@ -185,7 +185,9 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
                 messagesWithSeparators.push(
                   <div
                     key={index}
-                    className={`flex items-center mb-2 ${msg.sender === loggedInUser.username ? "justify-end mr-2" : "justify-start ml-2"
+                    className={`flex items-center mb-2 ${msg.sender === loggedInUser.username
+                        ? "justify-end mr-2"
+                        : "justify-start ml-2"
                       }`}
                   >
                     {msg.sender !== loggedInUser?.username && (
@@ -207,16 +209,18 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
                         </span>
                       )}
                       <div
-                        className={`relative p-2 rounded-md w-fit ${msg.sender === loggedInUser.username
-                          ? "bg-[#76589A] text-white"
-                          : "bg-[#D4D4D7] text-black"
+                        className={`relative p-2 rounded-md w-fit max-w-xs ${msg.sender === loggedInUser.username
+                            ? "bg-[#76589A] text-white"
+                            : "bg-[#D4D4D7] text-black"
                           }`}
                       >
-                        <p className="break-words text-sm">
+                        <p className="break-words text-sm overflow-hidden">
                           {typeof msg.text === "string" ? msg.text : "Invalid message"}
                         </p>
                         <span
-                          className={`absolute top-1/2 ${msg.sender === loggedInUser.username ? "right-[-8px]" : "left-[-8px]"
+                          className={`absolute top-1/2 ${msg.sender === loggedInUser.username
+                              ? "right-[-8px]"
+                              : "left-[-8px]"
                             } transform -translate-y-1/2 w-0 h-0 border-t-[8px] border-t-transparent ${msg.sender === loggedInUser.username
                               ? "border-l-[8px] border-l-[#76589A]"
                               : "border-r-[8px] border-r-[#D4D4D7]"
@@ -249,6 +253,7 @@ const Rightbar: React.FC<RightbarProps> = ({ localVideoRef, remoteVideoRef }) =>
             })()}
             <div ref={messageEndRef}></div>
           </div>
+
 
 
           {/* Mesaj gönderme alanı */}
