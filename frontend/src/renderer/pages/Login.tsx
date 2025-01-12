@@ -4,9 +4,8 @@ import apiClient from "../utils/apiClient";
 import photo2 from "../../../assets/images/login_backround_desert.jpg";
 import axios from "axios";
 
-
-
 const Login: React.FC = () => {
+  console.log("Login page renered");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
@@ -22,7 +21,7 @@ const Login: React.FC = () => {
       const response = await apiClient.post("/chat-app/login/", { username, password });
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
-      navigate("/chat");
+      navigate("/");
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const message = error.response?.data?.detail || "Login failed. Please check your credentials.";

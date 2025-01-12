@@ -1,21 +1,30 @@
 import React, { useEffect, useMemo } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Chat from "./pages/Chat";
-import PrivateRoute from "./routes/PrivateRoute";
-import PublicRoute from "./routes/PublicRoute";
 import { NotificationProvider } from "./context/NotificationContext";
 import { CallProvider } from "./context/CallContext";
 import useChatStore from "./store/chatStore";
 import './App.css';
+
+const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    return <Navigate to="/login" />;
+  }
+
+  return children;
+};
 
 const App: React.FC = () => {
   const { initializeSocket, closeSocket, fetchUsers } = useChatStore();
 
   const storedUser = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem("user") || "{}");
+      const user = localStorage.getItem("user");
+      return user ? JSON.parse(user) : {};
     } catch (error) {
       console.error("Error parsing user from localStorage:", error);
       return {};
@@ -25,52 +34,49 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!storedUser || !storedUser.username) return;
 
-    const socketUrl = `wss://testapi.berat-dogan.com/ws/message/${storedUser.username}/`;
-    initializeSocket(socketUrl);
+    try {
+      const socketUrl = `wss://testapi.berat-dogan.com/ws/message/${storedUser.username}/`;
+      initializeSocket(socketUrl);
+    } catch (error) {
+      console.error("Error initializing socket:", error);
+    }
 
     return () => {
-      closeSocket();
+      try {
+        closeSocket();
+      } catch (error) {
+        console.error("Error closing socket:", error);
+      }
     };
   }, [initializeSocket, closeSocket, storedUser.username]);
 
   useEffect(() => {
     if (!storedUser || !storedUser.username) return;
 
-    fetchUsers();
+    try {
+      fetchUsers();
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
   }, [fetchUsers, storedUser.username]);
 
   return (
     <Router>
       <Routes>
         <Route
-          path="/login"
+          path="/"
           element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/chat"
-          element={
-            <PrivateRoute>
+            <ProtectedRoute>
               <NotificationProvider>
                 <CallProvider>
                   <Chat />
                 </CallProvider>
               </NotificationProvider>
-            </PrivateRoute>
+            </ProtectedRoute>
           }
         />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </Router>
   );

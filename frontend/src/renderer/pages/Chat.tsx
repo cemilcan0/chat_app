@@ -5,6 +5,7 @@ import useChatStore from "../store/chatStore";
 import { useCall } from "../context/CallContext";
 
 const Chat: React.FC = () => {
+  console.log("Chat page rendered");
   const { incomingCall, setIncomingCall } = useChatStore();
   const { acceptCall } = useCall();
 

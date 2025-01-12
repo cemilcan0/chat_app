@@ -5,6 +5,7 @@ import photo2 from "../../../assets/images/login_backround_desert.jpg";
 
 
 const Register: React.FC = () => {
+  console.log("Register page rendered");
   const [formData, setFormData] = useState({
     username: "",
     first_name: "",
