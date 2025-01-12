@@ -4,12 +4,10 @@ import AddFriend from "./add-friend";
 import Profile from "./profile";
 
 const Leftbar: React.FC = () => {
-  const {
-    users,
-    selectedUser,
-    setSelectedUser,
-  } = useChatStore();
+  const { users, selectedUser, setSelectedUser } = useChatStore();
 
+  const [searchQuery, setSearchQuery] = useState<string>(""); // Arama çubuğu için durum
+  const [filteredUsers, setFilteredUsers] = useState(users); // Filtrelenmiş kullanıcılar
   const [maxMessageLength, setMaxMessageLength] = useState<number>(20); // Varsayılan daha düşük karakter sınırı
 
   // Ekran genişliğini kontrol et ve karakter sınırını ayarla
@@ -34,8 +32,16 @@ const Leftbar: React.FC = () => {
     };
   }, []);
 
+  // Kullanıcıları filtrele
+  useEffect(() => {
+    const filtered = users.filter((user) =>
+      user.name.toLowerCase().startsWith(searchQuery.toLowerCase()) // Arama metnine göre filtrele
+    );
+    setFilteredUsers(filtered);
+  }, [searchQuery, users]);
+
   return (
-    <div className="w-1/3 bg-[#433259] flex flex-col">
+    <div className="w-1/4 bg-[#433259] flex flex-col">
       <div className="p-4">
         {/* Giriş Yapmış Kullanıcı */}
         <Profile />
@@ -62,17 +68,18 @@ const Leftbar: React.FC = () => {
               type="text"
               placeholder="Search Conversations"
               className="w-full pl-10 py-2 text-sm bg-transparent text-white focus:outline-none placeholder-gray-400"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)} // Arama sorgusunu güncelle
             />
           </div>
 
           <AddFriend />
         </div>
-
       </div>
 
       {/* Kullanıcı Listesi */}
       <div className="flex-grow overflow-y-auto text-white">
-        {users.map((user) => {
+        {filteredUsers.map((user) => {
           // Kullanıcının son mesajını al
           const lastMessage =
             user.messages && user.messages.length > 0
@@ -82,10 +89,11 @@ const Leftbar: React.FC = () => {
           return (
             <div
               key={user.username}
-              className={`p-4 mb-2 cursor-pointer rounded-lg flex items-center relative ${selectedUser?.username === user.username
-                ? "bg-[#76589A]"
-                : "hover:bg-[#76589A]"
-                } transition-colors duration-200`}
+              className={`p-4 mb-2 cursor-pointer rounded-lg flex items-center relative ${
+                selectedUser?.username === user.username
+                  ? "bg-[#76589A]"
+                  : "hover:bg-[#76589A]"
+              } transition-colors duration-200`}
               onClick={() => setSelectedUser(user)}
             >
               {/* Kullanıcı Avatarı */}
@@ -101,14 +109,16 @@ const Leftbar: React.FC = () => {
                 <p className="text-xs text-gray-400 truncate">
                   {lastMessage
                     ? lastMessage.sender === user?.username
-                      ? `${user.name}: ${lastMessage.text.length > maxMessageLength
-                        ? lastMessage.text.slice(0, maxMessageLength) + "..."
-                        : lastMessage.text
-                      }` // Eğer karşı taraf mesaj atmışsa
-                      : `You: ${lastMessage.text.length > maxMessageLength
-                        ? lastMessage.text.slice(0, maxMessageLength) + "..."
-                        : lastMessage.text
-                      }` // Eğer mesajı siz göndermişseniz
+                      ? `${user.name}: ${
+                          lastMessage.text.length > maxMessageLength
+                            ? lastMessage.text.slice(0, maxMessageLength) + "..."
+                            : lastMessage.text
+                        }` // Eğer karşı taraf mesaj atmışsa
+                      : `You: ${
+                          lastMessage.text.length > maxMessageLength
+                            ? lastMessage.text.slice(0, maxMessageLength) + "..."
+                            : lastMessage.text
+                        }` // Eğer mesajı siz göndermişseniz
                     : "No messages yet"}
                 </p>
               </div>
