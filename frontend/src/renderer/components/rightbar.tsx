@@ -3,6 +3,7 @@ import useChatStore from "../store/chatStore";
 import { useCall } from "../context/CallContext";
 import phone from "../../../assets/icons/phone-call.svg";
 import camera from "../../../assets/icons/camera.svg";
+import info from "../../../assets/icons/info.svg";
 import dummyPhoto from "../../../assets/images/photo.jpg";
 import microphone from "../../../assets/icons/microphone.svg";
 import callCancel from "../../../assets/icons/call-cancel.svg";
@@ -62,7 +63,7 @@ const Rightbar: React.FC = () => {
   };
 
   return (
-    <div className="w-2/3 bg-white p-4 flex flex-col">
+    <div className="w-3/4 bg-white p-4 flex flex-col">
       {/* Video Alanı */}
       <div className="border-b">
         <div className="flex items-center space-x-4 justify-center">
@@ -117,6 +118,13 @@ const Rightbar: React.FC = () => {
                 className="text-gray-400 hover:text-gray-600 p-2 rounded-full"
               >
                 <img src={camera} alt="Video Call" className="w-6 h-6" />
+              </button>
+              
+              <button
+                className="text-gray-400 hover:text-gray-600 flex items-center justify-center p-2 rounded-full"
+                onClick={() => alert(`User Info: \nName: ${selectedUser.name}\nStatus: ${selectedUser.status}`)} // Kullanıcı bilgilerini göster
+              >
+                <img src={info} alt="İnformation" className="w-5 h-5" />
               </button>
             </div>
           </div>
