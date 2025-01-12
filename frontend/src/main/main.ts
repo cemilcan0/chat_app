@@ -71,8 +71,10 @@ const createWindow = async () => {
 
   mainWindow = new BrowserWindow({
     show: false,
-    width: 1024,
-    height: 728,
+    width: 1200, // Başlangıç genişliği
+    height: 800, // Başlangıç yüksekliği
+    minWidth: 1200, // Minimum genişlik
+    minHeight: 800, // Minimum yükseklik
     frame: true,
     icon: getAssetPath('icon.png'),
     webPreferences: {
@@ -82,6 +84,7 @@ const createWindow = async () => {
     },
     autoHideMenuBar: true,
   });
+
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
 

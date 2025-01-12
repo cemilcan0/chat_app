@@ -1,3 +1,21 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap');
+
+.emoji-text {
+    font-family: 'Noto Color Emoji', sans-serif !important;
+}
+
+.message-text {
+    font-size: 16px;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.message-text img {
+    width: 30px;
+    /* Emoji boyutunu sabit tut */
+    height: 30px;
+    vertical-align: middle;
+}

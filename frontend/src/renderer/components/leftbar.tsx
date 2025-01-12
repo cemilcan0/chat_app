@@ -15,10 +15,8 @@ const Leftbar: React.FC = () => {
     const handleResize = () => {
       const width = window.innerWidth;
 
-      if (width < 500) {
-        setMaxMessageLength(15); // Çok küçük ekranlar için
-      } else if (width < 768) {
-        setMaxMessageLength(20); // Orta boy ekranlar için
+      if (width <= 1200) {
+        setMaxMessageLength(14); // Çok küçük ekranlar için
       } else {
         setMaxMessageLength(30); // Büyük ekranlar için
       }
@@ -41,7 +39,7 @@ const Leftbar: React.FC = () => {
   }, [searchQuery, users]);
 
   return (
-    <div className="w-1/4 bg-[#433259] flex flex-col">
+    <div className="w-1/3 xl:w-1/4 bg-[#433259] flex flex-col">
       <div className="p-4">
         {/* Giriş Yapmış Kullanıcı */}
         <Profile />
@@ -89,19 +87,24 @@ const Leftbar: React.FC = () => {
           return (
             <div
               key={user.username}
-              className={`p-4 mb-2 cursor-pointer rounded-lg flex items-center relative ${
-                selectedUser?.username === user.username
-                  ? "bg-[#76589A]"
-                  : "hover:bg-[#76589A]"
-              } transition-colors duration-200`}
+              className={`p-4 mb-2 cursor-pointer rounded-lg flex items-center relative ${selectedUser?.username === user.username
+                ? "bg-[#76589A]"
+                : "hover:bg-[#76589A]"
+                } transition-colors duration-200`}
               onClick={() => setSelectedUser(user)}
             >
               {/* Kullanıcı Avatarı */}
-              <img
-                src={user.photo || "https://via.placeholder.com/40"}
-                alt="User Avatar"
-                className="w-10 h-10 rounded-full"
-              />
+              <div className="relative">
+                <img
+                  src={user.photo || "https://via.placeholder.com/40"}
+                  alt="User Avatar"
+                  className="w-10 h-10 rounded-full"
+                />
+                {/* Online/Offline Durumu */}
+                <span
+                  className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${user.online ? "bg-green-500" : "bg-red-500"}`}
+                ></span>
+              </div>
 
               {/* Kullanıcı Bilgileri ve Son Mesaj */}
               <div className="flex-1 ml-4">
@@ -109,16 +112,14 @@ const Leftbar: React.FC = () => {
                 <p className="text-xs text-gray-400 truncate">
                   {lastMessage
                     ? lastMessage.sender === user?.username
-                      ? `${user.name}: ${
-                          lastMessage.text.length > maxMessageLength
-                            ? lastMessage.text.slice(0, maxMessageLength) + "..."
-                            : lastMessage.text
-                        }` // Eğer karşı taraf mesaj atmışsa
-                      : `You: ${
-                          lastMessage.text.length > maxMessageLength
-                            ? lastMessage.text.slice(0, maxMessageLength) + "..."
-                            : lastMessage.text
-                        }` // Eğer mesajı siz göndermişseniz
+                      ? `${user.name}: ${lastMessage.text.length > maxMessageLength
+                        ? lastMessage.text.slice(0, maxMessageLength) + "..."
+                        : lastMessage.text
+                      }` // Eğer karşı taraf mesaj atmışsa
+                      : `You: ${lastMessage.text.length > maxMessageLength
+                        ? lastMessage.text.slice(0, maxMessageLength) + "..."
+                        : lastMessage.text
+                      }` // Eğer mesajı siz göndermişseniz
                     : "No messages yet"}
                 </p>
               </div>

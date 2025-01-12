@@ -74,6 +74,9 @@ const Profile: React.FC<Props> = () => {
           <div>
             <h3 className="text-lg font-bold text-white">{storedUser.name || 'Unknown User'}</h3>
             <p className="text-sm text-gray-500">{storedUser.username}</p>
+            <p className="text-sm text-gray-500">{storedUser.status}</p>
+
+
           </div>
         </div>
         <div className="flex items-center space-x-4">
