@@ -1,11 +1,52 @@
-import React, { useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import Leftbar from "../components/leftbar";
 import Rightbar from "../components/rightbar";
 import useChatStore from "../store/chatStore";
 import { useCall } from "../context/CallContext";
 
 const Chat: React.FC = () => {
-  console.log("Chat page rendered");
+  const { initializeSocket, closeSocket, fetchUsers } = useChatStore();
+
+  const storedUser = useMemo(() => {
+    try {
+      const user = localStorage.getItem("user");
+      return user ? JSON.parse(user) : {};
+    } catch (error) {
+      console.error("Error parsing user from localStorage:", error);
+      return {};
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!storedUser || !storedUser.username) return;
+
+    try {
+      const socketUrl = `wss://testapi.berat-dogan.com/ws/message/${storedUser.username}/`;
+      // const socketUrl = `ws://localhost:8000/ws/message/${storedUser.username}/`;
+      initializeSocket(socketUrl);
+    } catch (error) {
+      console.error("Error initializing socket:", error);
+    }
+
+    return () => {
+      try {
+        closeSocket();
+      } catch (error) {
+        console.error("Error closing socket:", error);
+      }
+    };
+  }, [initializeSocket, closeSocket, storedUser.username]);
+
+  useEffect(() => {
+    if (!storedUser || !storedUser.username) return;
+
+    try {
+      fetchUsers();
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  }, [fetchUsers, storedUser.username]);
+
   const { incomingCall, setIncomingCall } = useChatStore();
   const { acceptCall } = useCall();
 

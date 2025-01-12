@@ -5,7 +5,6 @@ from channels.generic.websocket import WebsocketConsumer
 
 
 class MessageConsumer(WebsocketConsumer):
-
     def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['username']
         self.room_group_name = 'chat_%s' % self.room_name
@@ -49,6 +48,20 @@ class MessageConsumer(WebsocketConsumer):
         self.send(text_data=json.dumps({
             'message': message,
             'status': 'end_call'
+        }))
+
+    def new_friendship_request(self, event):
+        message = event['message']
+        self.send(text_data=json.dumps({
+            'message': message,
+            'status': 'new_friendship_request'
+        }))
+
+    def accepted_friendship_request(self, event):
+        message = event['message']
+        self.send(text_data=json.dumps({
+            'message': message,
+            'status': 'accepted_friendship_request'
         }))
 
     def disconnect(self, code):

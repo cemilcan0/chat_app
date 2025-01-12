@@ -1,6 +1,7 @@
 from rest_framework import generics, permissions, status
+from django.db.models import F, Q, OuterRef, Subquery
 from rest_framework.response import Response
-from chat_app.models import Friendship, User
+from chat_app.models import Friendship, User, Message
 from rest_framework.views import APIView
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from chat_app.authentication import BearerAuthentication
@@ -38,7 +39,32 @@ class FriendsView(generics.ListAPIView):
 
         # Tüm arkadaşlıkları birleştir
         friend_ids = list(from_user_friends) + list(to_user_friends)
-        return User.objects.filter(id__in=friend_ids)
+
+        # Kullanıcının arkadaşları
+        friends = User.objects.filter(id__in=friend_ids)
+
+        # Subquery ile son mesaj tarihi
+        last_message_date = Message.objects.filter(
+            Q(sender=OuterRef('id'), receiver=self.request.user) |
+            Q(sender=self.request.user, receiver=OuterRef('id'))
+        ).order_by('-date_time').values('date_time')[:1]
+
+        # Subquery ile arkadaşlık tarihi
+        friendship_date = Friendship.objects.filter(
+            Q(from_user=self.request.user, to_user=OuterRef('id')) |
+            Q(to_user=self.request.user, from_user=OuterRef('id'))
+        ).order_by('created_at').values('created_at')[:1]
+
+        # Annotate ile eklenen alanlar
+        friends = friends.annotate(
+            last_message_date=Subquery(last_message_date),
+            friendship_date=Subquery(friendship_date)
+        ).order_by(
+            F('last_message_date').desc(nulls_last=True),
+            F('friendship_date').desc(nulls_last=True)
+        )
+
+        return friends
 
 
 class SendFriendRequestView(APIView):
