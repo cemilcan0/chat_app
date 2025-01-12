@@ -93,7 +93,7 @@ const AddFriend: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-[#433259] w-[90%] max-w-[400px] rounded-lg shadow-lg p-4">
             {/* Search Input */}
-            <div className="flex items-center mb-4 bg-[#433259] p-2 rounded-full shadow-md bg-black bg-opacity-20">
+            <div className="flex items-center mb-4 p-2 rounded-full shadow-md bg-black bg-opacity-20">
               <div className="relative flex-grow">
                 <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
                   <svg

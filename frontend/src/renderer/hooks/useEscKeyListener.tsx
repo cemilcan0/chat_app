@@ -2,12 +2,12 @@ import { useEffect } from 'react';
 import useChatStore from '../store/chatStore';
 
 const useEscKeyListener = () => {
-  const { setActiveChat } = useChatStore();
+  const { setSelectedUser } = useChatStore();
 
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setActiveChat(null);
+        setSelectedUser(null);
       }
     };
 
@@ -16,7 +16,7 @@ const useEscKeyListener = () => {
     return () => {
       document.removeEventListener('keydown', handleEscKey);
     };
-  }, [setActiveChat]);
+  }, [setSelectedUser]);
 };
 
 export default useEscKeyListener;
