@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import plusIcon from '../../../assets/icons/plus.svg';
 import check from '../../../assets/icons/check.svg';
 import cancel from '../../../assets/icons/cancel.svg';
+import closeIcon from '../../../assets/icons/cancel.svg'; // Kapatma simgesi
 import useChatStore from '../store/chatStore';
 import apiClient from '../utils/apiClient';
 
 const AddFriend: React.FC = () => {
-  const { friendRequests, fetchFriendRequests, acceptFriendRequest, declineFriendRequest } = useChatStore(); // Store'dan gerekli şeyleri al
+  const { friendRequests, fetchFriendRequests, acceptFriendRequest, declineFriendRequest } = useChatStore();
 
   const [isInputVisible, setIsInputVisible] = useState<boolean>(false);
   const [username, setUsername] = useState<string>('');
@@ -53,17 +54,50 @@ const AddFriend: React.FC = () => {
       </button>
 
       {isInputVisible && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#433259] w-[90%] max-w-[400px] rounded-lg shadow-lg p-4">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setIsInputVisible(false)} // Arkaplana tıklanırsa popup kapanır
+        >
+          <div
+            className="relative bg-[#433259] w-[90%] max-w-[400px] rounded-lg shadow-lg p-4"
+            onClick={(e) => e.stopPropagation()} // Popup içindeki tıklamaları durdurur
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setIsInputVisible(false)}
+              className="absolute -top-10 right-0 text-white"
+              aria-label="Close"
+            >
+              <img src={closeIcon} alt="Close" className="w-4 h-4" />
+            </button>
+
             {/* Search Input */}
             <div className="flex items-center mb-4 p-2 rounded-full shadow-md bg-black bg-opacity-20">
               <div className="relative flex-grow">
+                {/* Search Icon */}
+                <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M11 19a8 8 0 100-16 8 8 0 000 16zm10-2l-3.5-3.5"
+                    />
+                  </svg>
+                </span>
+                {/* Input */}
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter username"
-                  className="w-full pl-4 py-2 text-sm bg-transparent text-white focus:outline-none placeholder-gray-400"
+                  className="w-full pl-10 py-2 text-sm bg-transparent text-white focus:outline-none placeholder-gray-400"
                 />
               </div>
 
@@ -73,12 +107,6 @@ const AddFriend: React.FC = () => {
                   className="ml-2 bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition duration-200"
                 >
                   Add
-                </button>
-                <button
-                  onClick={() => setIsInputVisible(false)}
-                  className="ml-2 bg-gray-500 text-white px-4 py-2 rounded-full hover:bg-gray-600 transition duration-200"
-                >
-                  Close
                 </button>
               </div>
             </div>

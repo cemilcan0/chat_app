@@ -21,8 +21,8 @@ const Chat: React.FC = () => {
     if (!storedUser || !storedUser.username) return;
 
     try {
-      // const socketUrl = `wss://testapi.berat-dogan.com/ws/message/${storedUser.username}/`;
-      const socketUrl = `ws://localhost:8000/ws/message/${storedUser.username}/`;
+      const socketUrl = `wss://testapi.berat-dogan.com/ws/message/${storedUser.username}/`;
+      // const socketUrl = `ws://localhost:8000/ws/message/${storedUser.username}/`;
       initializeSocket(socketUrl);
     } catch (error) {
       console.error("Error initializing socket:", error);
