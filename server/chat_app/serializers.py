@@ -26,9 +26,55 @@ class BaseUserSerializer(serializers.ModelSerializer):
         fields = ('name', 'username', 'photo', 'online', 'status')
 
     def get_name(self, obj):
-        if obj.first_name:
-            return obj.get_full_name()
-        return obj.username
+        if isinstance(obj, User):
+            if obj.first_name:
+                return obj.get_full_name()
+            return obj.username
+        elif isinstance(obj, dict):
+            return obj.get('name', 'Unknown')
+        return 'Unknown'
+
+
+class UserWithPhotoURLSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    photo = serializers.SerializerMethodField()
+    online = serializers.BooleanField(source='profile.online')
+    status = serializers.CharField(source='profile.status')
+    messages = serializers.SerializerMethodField()  # Messages alanı
+
+    class Meta:
+        model = User
+        fields = ('name', 'username', 'photo', 'online',
+                  'status', 'messages')  # Messages eklendi
+
+    def get_name(self, obj):
+        if isinstance(obj, User):
+            if obj.first_name:
+                return obj.get_full_name()
+            return obj.username
+        elif isinstance(obj, dict):
+            return obj.get('name', 'Unknown')
+        return 'Unknown'
+
+    def get_photo(self, obj):
+        """
+        Profil fotoğrafını tam bir link olarak döndürür.
+        """
+        request = self.context.get('request')
+        if obj.profile.photo:
+            return request.build_absolute_uri(obj.profile.photo.url)
+        return None
+
+    def get_messages(self, obj):
+        """
+        Kullanıcı ile ilgili mesajları döndürür.
+        """
+        messages = Message.objects.filter(
+            Q(receiver=obj, sender=self.context['request'].user) |
+            Q(sender=obj, receiver=self.context['request'].user)
+        ).order_by('date_time')
+        serializer = MessageModelSerializer(messages, many=True)
+        return serializer.data
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -213,3 +259,96 @@ class EditProfileSerializer(serializers.ModelSerializer):
         profile.save()
 
         return instance
+
+
+class SendFriendRequestSerializer(serializers.Serializer):
+    username = serializers.CharField(write_only=True)
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        fields = ('username', 'user')
+
+    def get_user(self, obj):
+        # Yeni serializer ile tam URL döndürülüyor
+        return UserWithPhotoURLSerializer(obj['sender'], context=self.context).data
+
+    def create(self, validated_data):
+        sender = self.context['request'].user
+        receiver = User.objects.filter(
+            username=validated_data['username']).first()
+
+        if not receiver:
+            raise serializers.ValidationError({'username': 'User not found.'})
+
+        friendship, created = Friendship.objects.get_or_create(
+            from_user=sender,
+            to_user=receiver,
+            defaults={'status': 'pending'}
+        )
+
+        if not created:
+            raise serializers.ValidationError(
+                {'username': 'Friend request already sent.'})
+
+        message_content = {
+            'sender': UserWithPhotoURLSerializer(sender, context=self.context).data,
+            'message': 'You have a new friend request.'
+        }
+        self._broadcast(f'chat_{receiver.username}',
+                        'new_friendship_request', message_content)
+        return {'sender': sender, 'receiver': receiver}
+
+    def _broadcast(self, channel_name, message_type, message_content):
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            channel_name, {
+                'type': message_type,
+                'message': message_content
+            }
+        )
+
+
+class AcceptFriendRequestSerializer(serializers.Serializer):
+    username = serializers.CharField(write_only=True)
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        fields = ('username', 'user')
+
+    def get_user(self, obj):
+        return UserWithPhotoURLSerializer(obj['receiver'], context=self.context).data
+
+    def create(self, validated_data):
+        receiver = self.context['request'].user
+        sender = User.objects.filter(
+            username=validated_data['username']).first()
+
+        if not sender:
+            raise serializers.ValidationError({'username': 'User not found.'})
+
+        friendship = Friendship.objects.filter(
+            from_user=sender, to_user=receiver, status='pending').first()
+
+        if not friendship:
+            raise serializers.ValidationError(
+                {'username': 'Friend request not found.'})
+
+        friendship.status = 'accepted'
+        friendship.save()
+
+        message_content = {
+            'receiver': UserWithPhotoURLSerializer(receiver, context=self.context).data,
+            'message': f'{receiver.username} accepted your friend request.'
+        }
+        self._broadcast(f'chat_{sender.username}',
+                        'accepted_friendship_request', message_content)
+        return {'sender': sender, 'receiver': receiver}
+
+    def _broadcast(self, channel_name, message_type, message_content):
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            channel_name, {
+                'type': message_type,
+                'message': message_content
+            }
+        )

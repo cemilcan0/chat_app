@@ -8,7 +8,7 @@ from chat_app.authentication import BearerAuthentication
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
-from chat_app.serializers import FriendsWithLastMessageSerializer, BaseUserSerializer
+from chat_app.serializers import FriendsWithLastMessageSerializer, BaseUserSerializer, SendFriendRequestSerializer, AcceptFriendRequestSerializer, UserWithPhotoURLSerializer
 
 
 def send_notification(user, message_type, message_content):
@@ -68,49 +68,35 @@ class FriendsView(generics.ListAPIView):
 
 
 class SendFriendRequestView(APIView):
+    """
+    Arkadaşlık isteği göndermek için kullanılan API endpoint.
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        username = request.data.get("username")  # Kullanıcı adı alınacak
-        try:
-            # Kullanıcı adıyla sorgula
-            to_user = User.objects.get(username=username)
-            friendship, created = Friendship.objects.get_or_create(
-                from_user=request.user, to_user=to_user)
-            if created:
-                # Bildirim gönder
-                send_notification(to_user, 'new_friend_request', {
-                    'from_user': request.user.username,
-                    'message': 'You have a new friend request.'
-                })
-                return Response({"message": "Friend request sent."}, status=status.HTTP_201_CREATED)
-            else:
-                return Response({"message": "Friend request already sent."}, status=status.HTTP_400_BAD_REQUEST)
-        except User.DoesNotExist:
-            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = SendFriendRequestSerializer(
+            data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Friend request sent.", "data": serializer.data}, status=status.HTTP_201_CREATED)
 
 
 class AcceptFriendRequestView(APIView):
+    """
+    Arkadaşlık isteğini kabul etmek için kullanılan API endpoint.
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        username = request.data.get("username")  # Kullanıcı adı alınacak
-        try:
-            # Kullanıcı adıyla sorgula
-            from_user = User.objects.get(username=username)
-            friendship = Friendship.objects.get(
-                from_user=from_user, to_user=request.user, status='pending')
-            friendship.status = 'accepted'
-            friendship.save()
-
-            # Bildirim gönder
-            send_notification(from_user, 'friend_request_accepted', {
-                'to_user': request.user.username,
-                'message': 'Your friend request has been accepted.'
-            })
-            return Response({"message": "Friend request accepted."}, status=status.HTTP_200_OK)
-        except (User.DoesNotExist, Friendship.DoesNotExist):
-            return Response({"error": "Friend request not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = AcceptFriendRequestSerializer(
+            data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()  # `save()` işleminden dönen veri
+        # Burada sender bilgisini dönüyoruz
+        return Response({
+            "message": "Friend request accepted.",
+            "data": UserWithPhotoURLSerializer(result['sender'], context={'request': request}).data
+        }, status=status.HTTP_200_OK)
 
 
 class DeclineFriendRequestView(APIView):

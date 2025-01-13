@@ -14,10 +14,14 @@ interface ChatStore {
   users: UserType[];
   selectedUser: UserType | null;
   incomingCall: IncomingCall | null;
+  friendRequests: UserType[];
   fetchUsers: () => Promise<void>;
   setSelectedUser: (user: UserType | null) => void;
   setIncomingCall: (call: IncomingCall | null) => void;
   sendMessage: (messageText: string, loggedInUser: UserType) => Promise<void>;
+  fetchFriendRequests: () => Promise<void>;
+  acceptFriendRequest: (username: string) => Promise<void>;
+  declineFriendRequest: (username: string) => Promise<void>;
   initializeSocket: (url: string) => void;
   closeSocket: () => void;
   acceptCall: (
@@ -30,6 +34,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
   users: [],
   selectedUser: null,
   incomingCall: null,
+  friendRequests: [],
 
   fetchUsers: async () => {
     try {
@@ -111,10 +116,51 @@ const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
+  fetchFriendRequests: async () => {
+    try {
+      const response = await apiClient.get("/chat-app/pending-friend-requests/");
+      set({ friendRequests: response.data });
+    } catch (error) {
+      console.error("Error fetching friend requests:", error);
+    }
+  },
+
+  acceptFriendRequest: async (username: string) => {
+    try {
+      const response = await apiClient.post("/chat-app/accept-friend-request/", { username });
+      const newFriend = response.data.data;
+
+      set((state) => ({
+        friendRequests: state.friendRequests.filter(
+          (request) => request.username !== username
+        ),
+        users: [newFriend, ...state.users],
+      }));
+    } catch (error) {
+      console.error("Error accepting friend request:", error);
+    }
+  },
+
+
+  declineFriendRequest: async (username: string) => {
+    try {
+      await apiClient.post("/chat-app/decline-friend-request/", { username });
+      set((state) => ({
+        friendRequests: state.friendRequests.filter(
+          (request) => request.username !== username
+        ),
+      }));
+    } catch (error) {
+      console.error("Error declining friend request:", error);
+    }
+  },
+
   initializeSocket: (url: string) => {
     websocketService.connect(url);
 
     websocketService.onMessage((data) => {
+      console.log("New message received:", data);
+
       if (data.status === "new_message") {
         const { sender, text, date_time } = data.message;
         const newMessage: MessageType = { text, sender, date_time, read: false };
@@ -150,6 +196,18 @@ const useChatStore = create<ChatStore>((set, get) => ({
             callerPeerId: data.message.data.peer_id,
           },
         });
+      } else if (data.status === "new_friendship_request") {
+        // Yeni arkadaşlık isteği geldiğinde friendRequests'e ekle
+        const newRequest = data.message.sender; // Doğru veri yapısını kullan
+        set((state) => ({
+          friendRequests: [...state.friendRequests, newRequest],
+        }));
+      } else if (data.status === "accepted_friendship_request") {
+        // Arkadaşlık isteği kabul edildiğinde users'a ekle (ilk sıraya)
+        const newFriend = data.message.receiver; // Yeni arkadaş bilgisi
+        set((state) => ({
+          users: [newFriend, ...state.users], // Yeni kullanıcıyı ilk sıraya ekle
+        }));
       }
     });
   },

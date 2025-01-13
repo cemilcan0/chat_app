@@ -2,8 +2,8 @@ import axios from "axios";
 
 // Axios instance oluştur
 const apiClient = axios.create({
-  baseURL: "https://testapi.berat-dogan.com",
-  // baseURL: "http://localhost:8000",
+  // baseURL: "https://testapi.berat-dogan.com",
+  baseURL: "http://localhost:8000",
 });
 
 // Request interceptor: Bearer Token ekle

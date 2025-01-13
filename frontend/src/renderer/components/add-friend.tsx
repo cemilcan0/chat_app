@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import plusIcon from '../../../assets/icons/plus.svg';
-import searchIcon from '../../../assets/icons/search.svg';
 import check from '../../../assets/icons/check.svg';
 import cancel from '../../../assets/icons/cancel.svg';
+import useChatStore from '../store/chatStore';
 import apiClient from '../utils/apiClient';
 
 const AddFriend: React.FC = () => {
-  const [friendRequests, setFriendRequests] = useState<any[]>([]);
+  const { friendRequests, fetchFriendRequests, acceptFriendRequest, declineFriendRequest } = useChatStore(); // Store'dan gerekli şeyleri al
+
   const [isInputVisible, setIsInputVisible] = useState<boolean>(false);
   const [username, setUsername] = useState<string>('');
-  const [errorMessage, setErrorMessage] = useState<string>(''); // Hata mesajı için state
-  const [successMessage, setSuccessMessage] = useState<string>(''); // Başarı mesajı için state
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   const handleAddFriend = async () => {
     if (username.trim() === '') {
@@ -19,14 +20,11 @@ const AddFriend: React.FC = () => {
     }
 
     try {
-      const response = await apiClient.post('/chat-app/send-friend-request/', { username });
-      console.log('Friend request sent:', response.data);
-
+      await apiClient.post('/chat-app/send-friend-request/', { username });
       setUsername('');
-      setErrorMessage(''); // Hata mesajını sıfırla
-      setSuccessMessage('Friend request sent successfully!'); // Başarı mesajını ayarla
+      setErrorMessage('');
+      setSuccessMessage('Friend request sent successfully!');
 
-      // Başarı mesajını belirli bir süre sonra sıfırla
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error: any) {
       console.error('Error sending friend request:', error);
@@ -39,44 +37,9 @@ const AddFriend: React.FC = () => {
     }
   };
 
-  const handleAcceptRequest = async (requestUsername: string) => {
-    try {
-      const response = await apiClient.post('/chat-app/accept-friend-request/', { username: requestUsername });
-      console.log('Friend request accepted:', response.data);
-
-      fetchFriendRequests();
-    } catch (error) {
-      console.error('Error accepting friend request:', error);
-      setErrorMessage('An error occurred while accepting the friend request.');
-      setTimeout(() => setErrorMessage(''), 3000);
-    }
-  };
-
-  const declineFriendRequest = async (username: string) => {
-    try {
-      const response = await apiClient.post('/chat-app/decline-friend-request/', { username });
-      console.log('Friend request declined:', response.data);
-
-      fetchFriendRequests();
-    } catch (error) {
-      console.error('Error declining friend request:', error);
-    }
-  };
-
-  const fetchFriendRequests = async () => {
-    try {
-      const response = await apiClient.get('/chat-app/pending-friend-requests/');
-      console.log('Pending friend requests fetched:', response.data);
-
-      setFriendRequests(response.data);
-    } catch (error) {
-      console.error('Error fetching friend requests:', error);
-    }
-  };
-
   useEffect(() => {
     fetchFriendRequests();
-  }, []);
+  }, [fetchFriendRequests]);
 
   return (
     <div className="relative">
@@ -95,28 +58,12 @@ const AddFriend: React.FC = () => {
             {/* Search Input */}
             <div className="flex items-center mb-4 p-2 rounded-full shadow-md bg-black bg-opacity-20">
               <div className="relative flex-grow">
-                <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M11 19a8 8 0 100-16 8 8 0 000 16zm10-2l-3.5-3.5"
-                    />
-                  </svg>
-                </span>
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter username"
-                  className="w-full pl-10 py-2 text-sm bg-transparent text-white focus:outline-none placeholder-gray-400"
+                  className="w-full pl-4 py-2 text-sm bg-transparent text-white focus:outline-none placeholder-gray-400"
                 />
               </div>
 
@@ -127,16 +74,14 @@ const AddFriend: React.FC = () => {
                 >
                   Add
                 </button>
-
                 <button
                   onClick={() => setIsInputVisible(false)}
-                  className="absolute -top-12 -right-12 text-white hover:text-gray-300 text-lg"
+                  className="ml-2 bg-gray-500 text-white px-4 py-2 rounded-full hover:bg-gray-600 transition duration-200"
                 >
-                  ✖
+                  Close
                 </button>
               </div>
             </div>
-
 
             {/* Success Message */}
             {successMessage && (
@@ -159,7 +104,7 @@ const AddFriend: React.FC = () => {
                   >
                     <div className="flex items-center">
                       <img
-                        src={request.photo || "https://via.placeholder.com/40"}
+                        src={request.photo || 'https://via.placeholder.com/40'}
                         alt="User"
                         className="w-8 h-8 rounded-full"
                       />
@@ -170,7 +115,7 @@ const AddFriend: React.FC = () => {
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleAcceptRequest(request.username)}
+                        onClick={() => acceptFriendRequest(request.username)}
                         className="bg-green-500 p-1 rounded-full hover:bg-green-600"
                         title="Accept"
                       >
