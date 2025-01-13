@@ -10,30 +10,28 @@ const Leftbar: React.FC = () => {
   const [filteredUsers, setFilteredUsers] = useState(users); // Filtrelenmiş kullanıcılar
   const [maxMessageLength, setMaxMessageLength] = useState<number>(20); // Varsayılan daha düşük karakter sınırı
 
-  // Ekran genişliğini kontrol et ve karakter sınırını ayarla
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
 
       if (width <= 1200) {
-        setMaxMessageLength(14); // Çok küçük ekranlar için
+        setMaxMessageLength(14);
       } else {
-        setMaxMessageLength(30); // Büyük ekranlar için
+        setMaxMessageLength(30);
       }
     };
 
-    handleResize(); // İlk render sırasında çağır
-    window.addEventListener("resize", handleResize); // Resize olayını dinle
+    handleResize(); 
+    window.addEventListener("resize", handleResize); 
 
     return () => {
-      window.removeEventListener("resize", handleResize); // Olayı temizle
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
-  // Kullanıcıları filtrele
   useEffect(() => {
     const filtered = users.filter((user) =>
-      user.name.toLowerCase().startsWith(searchQuery.toLowerCase()) // Arama metnine göre filtrele
+      user.name.toLowerCase().startsWith(searchQuery.toLowerCase())
     );
     setFilteredUsers(filtered);
   }, [searchQuery, users]);

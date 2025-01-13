@@ -14,6 +14,7 @@ interface CallContextProps {
   remoteVideoRef: React.RefObject<HTMLVideoElement>;
   isCalling: boolean;
   isWaitingForAcceptance: boolean;
+  onCall: UserType | null;
   startCall: (isVideoCall: boolean, selectedUser: UserType) => Promise<void>;
   acceptCall: (incomingCall: IncomingCall | null, setIncomingCall: (call: IncomingCall | null) => void) => void;
 }
@@ -23,6 +24,7 @@ const CallContext = createContext<CallContextProps | undefined>(undefined);
 export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isCalling, setIsCalling] = useState(false);
   const [isWaitingForAcceptance, setIsWaitingForAcceptance] = useState(false);
+  const [onCall, setOnCall] = useState<UserType | null>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
@@ -56,6 +58,7 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.log("Arama kabul edildi, bağlanılıyor...");
         setIsWaitingForAcceptance(false); // Arama bekleme durumu sıfırla
         setIsCalling(false); // Popup'u kapat
+        setOnCall(selectedUser); 
 
         // Medya cihazlarına erişim
         navigator.mediaDevices
@@ -136,6 +139,8 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log("Peer connected with ID:", peer.id);
 
       setIncomingCall(null); // Gelen çağrıyı kapat
+      console.log("Incoming call accepted, connecting...", incomingCall);
+      setOnCall({ username: incomingCall.callerName, photo: incomingCall.callerPhoto } as UserType);
 
       navigator.mediaDevices
         .getUserMedia({ video: true, audio: true })
@@ -244,6 +249,7 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         remoteVideoRef,
         isCalling,
         isWaitingForAcceptance,
+        onCall,
         startCall,
         acceptCall,
       }}

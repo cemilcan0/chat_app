@@ -17,7 +17,8 @@ const Rightbar: React.FC = () => {
     remoteVideoRef,
     startCall,
     isCalling,
-    isWaitingForAcceptance
+    isWaitingForAcceptance,
+    onCall,
   } = useCall();
 
   const [message, setMessage] = useState("");
@@ -75,29 +76,35 @@ const Rightbar: React.FC = () => {
   return (
     <div className="w-2/3 xl:w-3/4 bg-white p-4 flex flex-col">
       {/* Video Alanı */}
-      <div className="border-b">
-        <div className="flex items-center space-x-4 justify-center">
-          <video
-            ref={localVideoRef}
-            autoPlay
-            muted
-            className="h-auto aspect-video bg-black"
-          ></video>
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            className="h-auto aspect-video bg-black"
-          ></video>
+      <div className={`border-b pb-4 ${!onCall ? "hidden" : ""}`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 justify-center items-center">
+          {/* Yerel Video */}
+          <div className="w-full h-full flex justify-end items-center relative">
+            <video
+              ref={localVideoRef}
+              autoPlay
+              muted
+              className="w-auto max-h-[300px] rounded-lg aspect-video border shadow-md"
+            ></video>
+          </div>
+          {/* Uzak Video */}
+          <div className="w-full h-full flex justify-start items-center relative">
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              className="w-auto max-h-[300px] rounded-lg aspect-video border shadow-md"
+            ></video>
+          </div>
         </div>
         <div className="flex justify-center space-x-4 py-4">
           <button>
-            <img src={microphone} alt="" className="w-6 h-6" />
+            <img src={microphone} alt="Mute" className="w-6 h-6" />
           </button>
           <button>
-            <img src={camera} alt="" className="w-6 h-6" />
+            <img src={camera} alt="Toggle Camera" className="w-6 h-6" />
           </button>
           <button>
-            <img src={callCancel} alt="" className="w-6 h-6" />
+            <img src={callCancel} alt="End Call" className="w-6 h-6" />
           </button>
         </div>
       </div>
@@ -200,128 +207,128 @@ const Rightbar: React.FC = () => {
                         <p className="message-text emoji-text">
                           {typeof msg.text === "string" ? msg.text : "Invalid message"}
                         </p>
-                      
-                      <span
-                        className={`absolute top-1/2 ${msg.sender === loggedInUser.username
-                          ? "right-[-8px]"
-                          : "left-[-8px]"
-                          } transform -translate-y-1/2 w-0 h-0 border-t-[8px] border-t-transparent ${msg.sender === loggedInUser.username
-                            ? "border-l-[8px] border-l-[#76589A]"
-                            : "border-r-[8px] border-r-[#D4D4D7]"
-                          } border-b-[8px] border-b-transparent`}
-                      ></span>
+
+                        <span
+                          className={`absolute top-1/2 ${msg.sender === loggedInUser.username
+                            ? "right-[-8px]"
+                            : "left-[-8px]"
+                            } transform -translate-y-1/2 w-0 h-0 border-t-[8px] border-t-transparent ${msg.sender === loggedInUser.username
+                              ? "border-l-[8px] border-l-[#76589A]"
+                              : "border-r-[8px] border-r-[#D4D4D7]"
+                            } border-b-[8px] border-b-transparent`}
+                        ></span>
+                      </div>
+                      {msg.sender !== loggedInUser.username && (
+                        <span className="text-xs text-gray-400 ml-2">
+                          {typeof msg.date_time === "string"
+                            ? new Date(msg.date_time).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                            : ""}
+                        </span>
+                      )}
                     </div>
-                    {msg.sender !== loggedInUser.username && (
-                      <span className="text-xs text-gray-400 ml-2">
-                        {typeof msg.date_time === "string"
-                          ? new Date(msg.date_time).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                          : ""}
-                      </span>
-                    )}
-                  </div>
                     {
-                    msg.sender === loggedInUser?.username && (
-                      <img
-                        src={`https://testapi.berat-dogan.com${loggedInUser?.photo}` || dummyPhoto}
-                        alt={loggedInUser?.name || "User"}
-                        className="w-8 h-8 rounded-full ml-2 object-cover"
-                      />
-                    )
-                  }
+                      msg.sender === loggedInUser?.username && (
+                        <img
+                          src={`https://testapi.berat-dogan.com${loggedInUser?.photo}` || dummyPhoto}
+                          alt={loggedInUser?.name || "User"}
+                          className="w-8 h-8 rounded-full ml-2 object-cover"
+                        />
+                      )
+                    }
                   </div>
-          );
+                );
               });
 
-          return messagesWithSeparators;
+              return messagesWithSeparators;
             })()}
-          <div ref={messageEndRef}></div>
-        </div>
-
-      {/* Mesaj Gönderme Alanı */}
-      <form onSubmit={handleSubmit} className="flex items-center bg-gray-100 px-4 py-2 rounded-full shadow-md relative ">
-        {/* Emoji Picker */}
-
-        {showEmojiPicker && (
-          <div className="absolute bottom-12 right-0 z-50 emoji-picker-container">
-            <EmojiPicker onEmojiClick={handleEmojiClick} />
+            <div ref={messageEndRef}></div>
           </div>
-        )}
-        {/* Ataş ikonu */}
-        <button type="button" className="mr-2 text-gray-500 hover:text-gray-700">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14m7-7H5" />
-          </svg>
-        </button>
 
-        {/* Metin alanı */}
-        <input
-          type="text"
-          className="flex-grow border-none bg-transparent focus:outline-none text-gray-700 placeholder-gray-500"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type your message here..."
-        />
+          {/* Mesaj Gönderme Alanı */}
+          <form onSubmit={handleSubmit} className="flex items-center bg-gray-100 px-4 py-2 rounded-full shadow-md relative ">
+            {/* Emoji Picker */}
 
-        {/* Emoji İkonu */}
-        <button
-          type="button"
-          className="mr-2 text-gray-500 hover:text-gray-700"
-          onClick={() => setShowEmojiPicker((prev) => !prev)}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M14.828 14.828a4 4 0 00-5.656 0M9 10h.01M15 10h.01M12 16h0"
-            />
-          </svg>
-        </button>
-
-
-
-        {/* Gönderme düğmesi */}
-        <button type="submit" className="ml-2 text-white bg-purple-600 hover:bg-purple-700 p-2 rounded-full shadow">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14m-7-7l7 7-7 7" />
-          </svg>
-        </button>
-      </form>
-    </>
-  ) : (
-    <div className="flex items-center justify-center h-full text-gray-500">
-      Select a user to start chatting
-    </div>
-  )
-}
-
-{/* Çağrı Popup */ }
-{
-  isCalling && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-        {isWaitingForAcceptance ? (
-          <>
-            <h2 className="text-xl font-bold mb-4">
-              Waiting for {selectedUser?.name} to accept...
-            </h2>
-            <button
-              onClick={closeCallPopup}
-              className="bg-red-500 text-white px-4 py-2 rounded"
-            >
-              Cancel Call
+            {showEmojiPicker && (
+              <div className="absolute bottom-12 right-0 z-50 emoji-picker-container">
+                <EmojiPicker onEmojiClick={handleEmojiClick} />
+              </div>
+            )}
+            {/* Ataş ikonu */}
+            <button type="button" className="mr-2 text-gray-500 hover:text-gray-700">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14m7-7H5" />
+              </svg>
             </button>
-          </>
-        ) : (
-          <h2 className="text-xl font-bold mb-4">Connecting...</h2>
-        )}
-      </div>
-    </div>
-  )
-}
+
+            {/* Metin alanı */}
+            <input
+              type="text"
+              className="flex-grow border-none bg-transparent focus:outline-none text-gray-700 placeholder-gray-500"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Type your message here..."
+            />
+
+            {/* Emoji İkonu */}
+            <button
+              type="button"
+              className="mr-2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowEmojiPicker((prev) => !prev)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M14.828 14.828a4 4 0 00-5.656 0M9 10h.01M15 10h.01M12 16h0"
+                />
+              </svg>
+            </button>
+
+
+
+            {/* Gönderme düğmesi */}
+            <button type="submit" className="ml-2 text-white bg-purple-600 hover:bg-purple-700 p-2 rounded-full shadow">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14m-7-7l7 7-7 7" />
+              </svg>
+            </button>
+          </form>
+        </>
+      ) : (
+        <div className="flex items-center justify-center h-full text-gray-500">
+          Select a user to start chatting
+        </div>
+      )
+      }
+
+      {/* Çağrı Popup */}
+      {
+        isCalling && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+              {isWaitingForAcceptance ? (
+                <>
+                  <h2 className="text-xl font-bold mb-4">
+                    Waiting for {selectedUser?.name} to accept...
+                  </h2>
+                  <button
+                    onClick={closeCallPopup}
+                    className="bg-red-500 text-white px-4 py-2 rounded"
+                  >
+                    Cancel Call
+                  </button>
+                </>
+              ) : (
+                <h2 className="text-xl font-bold mb-4">Connecting...</h2>
+              )}
+            </div>
+          </div>
+        )
+      }
     </div >
   );
 };
