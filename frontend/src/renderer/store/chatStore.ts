@@ -187,16 +187,16 @@ const useChatStore = create<ChatStore>((set, get) => ({
                 }
                 : user
             )
-            .filter((user) => user.username !== sender); // Göndereni listeden çıkar
+            .filter((user) => user.username !== sender); 
 
           const senderUser = state.users.find((user) => user.username === sender);
+          const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
           if (senderUser) {
-            // Göndereni listenin başına ekle
             updatedUsers.unshift({
               ...senderUser,
               messages: [...senderUser.messages, newMessage],
               unreadMessages:
-                senderUser.username === state.selectedUser?.username
+                senderUser.username === state.selectedUser?.username || senderUser.username === loggedInUser.username
                   ? senderUser.unreadMessages
                   : senderUser.unreadMessages + 1,
             });
