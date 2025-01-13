@@ -98,14 +98,22 @@ const useChatStore = create<ChatStore>((set, get) => ({
       });
 
       set((state) => ({
-        users: state.users.map((user) =>
-          user.username === selectedUser.username
-            ? {
-              ...user,
-              messages: [...user.messages, newMessage],
-            }
-            : user
-        ),
+        users: [
+          {
+            ...selectedUser,
+            messages: [...selectedUser.messages, newMessage],
+          },
+          ...state.users
+            .filter((user) => user.username !== selectedUser.username)
+            .map((user) =>
+              user.username === selectedUser.username
+                ? {
+                  ...user,
+                  messages: [...user.messages, newMessage],
+                }
+                : user
+            ),
+        ],
         selectedUser: {
           ...selectedUser,
           messages: [...selectedUser.messages, newMessage],
@@ -165,20 +173,39 @@ const useChatStore = create<ChatStore>((set, get) => ({
         const { sender, text, date_time } = data.message;
         const newMessage: MessageType = { text, sender, date_time, read: false };
 
-        set((state) => ({
-          users: state.users.map((user) =>
-            user.username === sender
-              ? {
-                ...user,
-                messages: [...user.messages, newMessage],
-                unreadMessages:
-                  user.username === state.selectedUser?.username
-                    ? user.unreadMessages
-                    : user.unreadMessages + 1,
-              }
-              : user
-          ),
-        }));
+        set((state) => {
+          const updatedUsers = state.users
+            .map((user) =>
+              user.username === sender
+                ? {
+                  ...user,
+                  messages: [...user.messages, newMessage],
+                  unreadMessages:
+                    user.username === state.selectedUser?.username
+                      ? user.unreadMessages
+                      : user.unreadMessages + 1,
+                }
+                : user
+            )
+            .filter((user) => user.username !== sender); // Göndereni listeden çıkar
+
+          const senderUser = state.users.find((user) => user.username === sender);
+          if (senderUser) {
+            // Göndereni listenin başına ekle
+            updatedUsers.unshift({
+              ...senderUser,
+              messages: [...senderUser.messages, newMessage],
+              unreadMessages:
+                senderUser.username === state.selectedUser?.username
+                  ? senderUser.unreadMessages
+                  : senderUser.unreadMessages + 1,
+            });
+          }
+
+          return {
+            users: updatedUsers,
+          };
+        });
 
         if (get().selectedUser?.username === sender) {
           set((state) => ({
@@ -187,6 +214,21 @@ const useChatStore = create<ChatStore>((set, get) => ({
               messages: [...state.selectedUser!.messages, newMessage],
             },
           }));
+
+          apiClient
+            .post(`/chat-app/read-messages/${sender}`)
+            .then(() => {
+              set((state) => ({
+                users: state.users.map((user) =>
+                  user.username === sender
+                    ? { ...user, unreadMessages: 0 }
+                    : user
+                ),
+              }));
+            })
+            .catch((error) => {
+              console.error("Error marking messages as read:", error);
+            });
         }
       } else if (data.status === "new_call") {
         set({
