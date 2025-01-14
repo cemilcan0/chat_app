@@ -25,6 +25,9 @@ const Rightbar: React.FC = () => {
   const messageEndRef = useRef<HTMLDivElement>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Emoji picker görünürlüğü
 
+  const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
+
+
 
   const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -139,10 +142,11 @@ const Rightbar: React.FC = () => {
 
               <button
                 className="text-gray-400 hover:text-gray-600 flex items-center justify-center p-2 rounded-full"
-                onClick={() => alert(`User Info: \nName: ${selectedUser.name}\nStatus: ${selectedUser.status}`)} // Kullanıcı bilgilerini göster
+                onClick={() => setIsInfoPanelOpen((prev) => !prev)} // Panel açma/kapatma
               >
-                <img src={info} alt="İnformation" className="w-5 h-5" />
+                <img src={info} alt="Information" className="w-5 h-5" />
               </button>
+
             </div>
           </div>
 
@@ -247,6 +251,7 @@ const Rightbar: React.FC = () => {
             <div ref={messageEndRef}></div>
           </div>
 
+
           {/* Mesaj Gönderme Alanı */}
           <form onSubmit={handleSubmit} className="flex items-center bg-gray-100 px-4 py-2 rounded-full shadow-md relative ">
             {/* Emoji Picker */}
@@ -329,7 +334,25 @@ const Rightbar: React.FC = () => {
           </div>
         )
       }
+      {isInfoPanelOpen && (
+        <div className="w-1/3 bg-gray-100 p-4 shadow-md">
+          <h3 className="text-lg font-bold">User Info</h3>
+          <img
+            src={selectedUser?.photo || dummyPhoto}
+            alt="User Avatar"
+            className="w-16 h-16 rounded-full object-cover mt-4"
+          />
+          <p className="mt-2 text-gray-600">
+            Name: {selectedUser?.name || "Unknown"}
+          </p>
+          <p className="mt-2 text-gray-600">
+            Status: {selectedUser?.status || "N/A"}
+          </p>
+          {/* Diğer kullanıcı bilgilerini burada listeleyebilirsiniz */}
+        </div>
+      )}
     </div >
+
   );
 };
 
