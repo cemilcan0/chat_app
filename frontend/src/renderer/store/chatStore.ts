@@ -8,6 +8,7 @@ interface IncomingCall {
   callerName: string;
   callerPhoto: string;
   callerPeerId: string;
+  isVideoCall: boolean;
 }
 
 interface ChatStore {
@@ -264,6 +265,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
             callerName: data.message.display.name,
             callerPhoto: data.message.display.photo,
             callerPeerId: data.message.data.peer_id,
+            isVideoCall: data.message.data.isVideoCall,
           },
         });
       } else if (data.status === "new_friendship_request") {

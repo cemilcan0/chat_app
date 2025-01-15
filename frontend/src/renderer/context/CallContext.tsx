@@ -128,8 +128,7 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 remoteVideoRef.current.srcObject = remoteStream;
                 remoteVideoRef.current.play().catch(() => { });
               } else {
-                remoteVideoRef.current.srcObject = null; // Kamera kapalıysa boş bırak
-                // Kamerası kapalı olan kişinin avatarını göster
+                remoteVideoRef.current.srcObject = null;
               }
             }
           });
@@ -146,8 +145,6 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       if (peerRef.current) {
         const peerId = peerRef.current.id;
-        peerRef.current.destroy();
-        peerRef.current = null;
 
         const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
         if (onCall) {
@@ -168,6 +165,12 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Arama durumlarını sıfırlar
   const resetCallState = () => {
+    if (peerRef.current) {
+      const peerId = peerRef.current.id;
+      peerRef.current.destroy();
+      peerRef.current = null;
+    }
+
     setIsCalling(false);
     setIsWaitingForAcceptance(false);
     setOnCall(null);
