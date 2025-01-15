@@ -35,20 +35,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       return;
     }
 
-    // WebSocket bağlantısı
+    // Genel notification WebSocket'e bağlanıyoruz
     websocketService.connect("wss://testapi.berat-dogan.com/ws/notification/");
     // websocketService.connect("ws://localhost:8000/ws/notification/");
-
-    // Bağlantı kurulduğunda loggedInUser ve online durumunu gönder
-    websocketService.onOpen(() => {
-      websocketService.sendMessage({
-        type: "status_update",
-        username: storedUser.username,
-        online: true,
-      });
-    });
-
-    // Gelen mesajları dinle
     websocketService.onMessage((data) => {
       if (data.type === "new_user") {
         addNotification({
@@ -59,14 +48,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
     });
 
-    // Çıkış yaparken veya bileşen unmount olurken loggedInUser ve online durumunu False olarak gönder
     return () => {
-      websocketService.sendMessage({
-        type: "status_update",
-        username: storedUser.username,
-        online: false,
-      });
-      websocketService.close(); // WebSocket bağlantısını kapat
+      websocketService.close(); // Genel notification WebSocket'i kapatıyoruz
     };
   }, []);
 
