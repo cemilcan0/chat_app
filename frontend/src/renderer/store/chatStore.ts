@@ -11,6 +11,8 @@ interface IncomingCall {
 }
 
 interface ChatStore {
+  resetStore: () => void;
+
   users: UserType[];
   selectedUser: UserType | null;
   incomingCall: IncomingCall | null;
@@ -253,6 +255,18 @@ const useChatStore = create<ChatStore>((set, get) => ({
       }
     });
   },
+  
+
+  resetStore: () => {
+    set(() => ({
+      users: [],
+      friendRequests: [],
+      selectedUser: null, // Mevcut seçili kullanıcıyı sıfırla
+      messages: [], // Eğer mesajları da tutuyorsanız temizleyin
+      // Diğer state'leri de burada sıfırlayın
+    }));
+  },
+  
 
   closeSocket: () => {
     websocketService.close();

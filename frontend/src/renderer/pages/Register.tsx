@@ -3,45 +3,43 @@ import apiClient from "../utils/apiClient";
 import { useNavigate } from "react-router-dom";
 import photo2 from "../../../assets/images/login_backround_desert.jpg";
 
-
 const Register: React.FC = () => {
-  console.log("Register page rendered");
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
+    password: "",
     first_name: "",
     last_name: "",
-    password: "",
+    email: "",
   });
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false); // Terms & Conditions kontrolü
+  const [loading, setLoading] = useState(false); // Loading durumu
+  const [errorMessage, setErrorMessage] = useState<string | null>(null); // Hata mesajı
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setErrorMessage("");
-    setLoading(true);
+    setErrorMessage(""); // Hata mesajını sıfırla
 
-    try {
-      const response = await apiClient.post("/chat-app/registration/", formData);
-      alert(response.data.message || "Registration successful!");
-      navigate("/login");
-    } catch (error: any) {
-      if (error.response && error.response.data) {
-        const errors = error.response.data;
-        for (const [key, value] of Object.entries(errors)) {
-          alert(`${key}: ${value}`);
-        }
-      } else {
-        setErrorMessage("Registration failed. Please try again.");
-      }
-    } finally {
-      setLoading(false);
+    if (!termsAccepted) {
+      setErrorMessage("You must accept the Terms & Conditions to register.");
+      return;
     }
-  };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setLoading(true); // Loading durumunu başlat
+
+    apiClient
+      .post("/chat-app/registration/", formData)
+      .then((res) => {
+        navigate("/login?ref=register");
+      })
+      .catch((error) => {
+        const message =
+          error.response?.data?.detail || "Registration failed. Please try again.";
+        setErrorMessage(message); // Hata mesajını ayarla
+      })
+      .finally(() => {
+        setLoading(false); // Loading durumunu bitir
+      });
   };
 
   return (
@@ -79,36 +77,15 @@ const Register: React.FC = () => {
           {errorMessage && (
             <p className="text-red-500 text-center mb-4">{errorMessage}</p>
           )}
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <input
                 type="text"
                 placeholder="Username"
-                name="username"
                 value={formData.username}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                required
-              />
-            </div>
-            <div>
-              <input
-                type="text"
-                placeholder="First Name"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                required
-              />
-            </div>
-            <div>
-              <input
-                type="text"
-                placeholder="Last Name"
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleInputChange}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
                 className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 required
               />
@@ -117,20 +94,78 @@ const Register: React.FC = () => {
               <input
                 type="password"
                 placeholder="Password"
-                name="password"
                 value={formData.password}
-                onChange={handleInputChange}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 required
               />
+            </div>
+            <div>
+              <input
+                type="text"
+                placeholder="First Name"
+                value={formData.first_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, first_name: e.target.value })
+                }
+                className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <input
+                type="text"
+                placeholder="Last Name"
+                value={formData.last_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, last_name: e.target.value })
+                }
+                className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <input
+                type="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                required
+              />
+            </div>
+            {/* Terms & Conditions */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="h-4 w-4 border-[#4E435F] rounded bg-[#3A3248] text-purple-500 focus:ring-2 focus:ring-purple-500"
+              />
+              <label htmlFor="terms" className="ml-2 text-gray-400">
+                I agree to the{" "}
+                <a
+                  href="https://perlanera.co/policies/legal-notice"
+                  className="text-purple-500 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Terms & Conditions
+                </a>
+              </label>
             </div>
             <button
               type="submit"
               className={`w-full py-2 rounded-lg transition ${loading
                   ? "bg-purple-600 opacity-50 text-white cursor-not-allowed"
                   : "bg-purple-600 hover:bg-purple-700 text-white"
-                }`}
-              disabled={loading}
+                } ${!termsAccepted && !loading ? "opacity-50" : ""}`}
+              disabled={!termsAccepted || loading}
             >
               {loading ? "Loading..." : "Register"}
             </button>
