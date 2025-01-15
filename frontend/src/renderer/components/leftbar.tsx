@@ -138,7 +138,7 @@ const Leftbar: React.FC = () => {
                   <p className="text-xs text-gray-400 truncate">
                     {lastMessage
                       ? lastMessage.sender === user?.username
-                        ? `${user.name}: ${lastMessage.text.length > maxMessageLength
+                        ? `${user.username}: ${lastMessage.text.length > maxMessageLength
                           ? lastMessage.text.slice(0, maxMessageLength) +
                           "..."
                           : lastMessage.text

@@ -16,6 +16,8 @@ const Profile: React.FC<Props> = () => {
     username: storedUser.username || '',
     status: storedUser.status || '',
     photo: null as File | null,
+    first_name: storedUser.first_name || '',
+    last_name: storedUser.last_name || '',
   });
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,7 +41,8 @@ const Profile: React.FC<Props> = () => {
     event.preventDefault();
     const updateData = new FormData();
 
-    updateData.append('first_name', formData.name);
+    updateData.append('first_name', formData.first_name);
+    updateData.append('last_name', formData.last_name);
     updateData.append('username', formData.username);
     updateData.append('status', formData.status);
     if (formData.photo) {
@@ -102,15 +105,27 @@ const Profile: React.FC<Props> = () => {
                   />
                 </div>
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                />
+              <div className='flex justify-center items-center gap-4'>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700">First Name</label>
+                  <input
+                    type="text"
+                    name="first_name"
+                    value={formData.first_name}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                  <input
+                    type="text"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                  />
+                </div>
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Username</label>

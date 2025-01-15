@@ -19,7 +19,6 @@ const AddFriend: React.FC<AddFriendProps> = ({ onPendingRequestCountChange }) =>
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [localFriendRequests, setLocalFriendRequests] = useState(friendRequests);
 
-
   const handleAddFriend = async () => {
     if (username.trim() === '') {
       setErrorMessage('Please enter a username.');
@@ -35,6 +34,8 @@ const AddFriend: React.FC<AddFriendProps> = ({ onPendingRequestCountChange }) =>
       setLocalFriendRequests((prev) =>
         prev.filter((request) => request.username !== username)
       );
+
+      fetchFriendRequests();
 
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error: any) {
