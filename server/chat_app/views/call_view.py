@@ -47,10 +47,6 @@ class StartCall(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class JoinCallSerializer(serializers.Serializer):
-    peer_js = serializers.CharField()
-
-
 class EndCall(APIView):
     authentication_classes = [BearerAuthentication]
     permission_classes = [IsAuthenticated]

@@ -124,3 +124,39 @@ class PendingFriendRequestsView(generics.ListAPIView):
             to_user=self.request.user, status='pending'
         ).select_related('from_user__profile').values_list('from_user', flat=True)
         return User.objects.filter(id__in=pending_requests)
+
+
+class DeleteFriendView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # Silinecek arkadaşın kullanıcı adı
+        username = request.data.get("username")
+        if not username:
+            return Response({"error": "Username is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Kullanıcı adıyla sorgula
+            friend = User.objects.get(username=username)
+
+            # İlgili arkadaşlık ilişkisini bul
+            friendship = Friendship.objects.filter(
+                (
+                    Q(from_user=request.user, to_user=friend) |
+                    Q(from_user=friend, to_user=request.user)
+                ),
+                status='accepted'  # Yalnızca kabul edilmiş arkadaşlıklar
+            )
+
+            if not friendship.exists():
+                return Response({"error": "Friendship not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Arkadaşlık ilişkisini sil
+            friendship.delete()
+            return Response({"message": "Friendship deleted successfully."}, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

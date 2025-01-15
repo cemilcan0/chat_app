@@ -11,7 +11,7 @@ import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 
 
 const Rightbar: React.FC = () => {
-  const { selectedUser, sendMessage } = useChatStore();
+  const { selectedUser, sendMessage, deleteFriendRequest } = useChatStore();
   const {
     localVideoRef,
     remoteVideoRef,
@@ -19,6 +19,9 @@ const Rightbar: React.FC = () => {
     isCalling,
     isWaitingForAcceptance,
     onCall,
+    endCall,
+    toggleAudio,
+    toggleCamera,
   } = useCall();
 
   const [message, setMessage] = useState("");
@@ -26,7 +29,6 @@ const Rightbar: React.FC = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Emoji picker görünürlüğü
 
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
-  const [isCameraOn, setIsCameraOn] = useState(false);
   const videoStreamRef = useRef<MediaStream | null>(null);
 
   const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -61,10 +63,6 @@ const Rightbar: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleSendMessage();
-  };
-
-  const closeCallPopup = () => {
-    // Implement the logic to close the call popup
   };
 
   const handleStartCall = async (isVideoCall: boolean) => {
@@ -102,13 +100,13 @@ const Rightbar: React.FC = () => {
             </div>
           </div>
           <div className="flex justify-center space-x-4 py-4">
-            <button>
+            <button onClick={() => toggleAudio()}>
               <img src={microphone} alt="Mute" className="w-6 h-6" />
             </button>
-            <button>
+            <button onClick={() => toggleCamera()}>
               <img src={camera} alt="Toggle Camera" className="w-6 h-6" />
             </button>
-            <button>
+            <button onClick={endCall}>
               <img src={callCancel} alt="End Call" className="w-6 h-6" />
             </button>
           </div>
@@ -324,7 +322,7 @@ const Rightbar: React.FC = () => {
                     Waiting for {selectedUser?.name} to accept...
                   </h2>
                   <button
-                    onClick={closeCallPopup}
+                    onClick={endCall}
                     className="bg-red-500 text-white px-4 py-2 rounded"
                   >
                     Cancel Call
@@ -414,11 +412,15 @@ const Rightbar: React.FC = () => {
             </div>
           </div>
 
-
+          {
+            selectedUser &&
+            <button onClick={() => deleteFriendRequest(selectedUser.username)} className="bg-red-500 text-white p-2 rounded-md mt-4">
+              Delete Friend
+            </button>
+          }
         </div>
       )}
-    </div >
-
+    </div>
   );
 };
 

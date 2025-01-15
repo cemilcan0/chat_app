@@ -17,6 +17,9 @@ interface CallContextProps {
   onCall: UserType | null;
   startCall: (isVideoCall: boolean, selectedUser: UserType) => Promise<void>;
   acceptCall: (incomingCall: IncomingCall | null, setIncomingCall: (call: IncomingCall | null) => void) => void;
+  endCall: () => Promise<void>;
+  toggleCamera: () => void;
+  toggleAudio: () => void;
 }
 
 const CallContext = createContext<CallContextProps | undefined>(undefined);
@@ -28,218 +31,171 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
-  let peer: Peer | null = null; // PeerJS nesnesi
+  const peerRef = useRef<Peer | null>(null);
 
+  // Başlatılan aramayı yönetir
   const startCall = async (isVideoCall: boolean, selectedUser: UserType) => {
     try {
-      peer = new Peer();
+      if (!peerRef.current) {
+        peerRef.current = new Peer();
+      }
 
-      // PeerJS bağlantısı açıldığında
-      peer.on("open", async (peerId) => {
-        console.log("Peer connected with ID:", peerId);
+      peerRef.current.on("open", async (peerId) => {
+        setIsCalling(true);
+        setIsWaitingForAcceptance(true);
 
-        setIsCalling(true); // Popup'u göster
-        setIsWaitingForAcceptance(true); // Arama bekleme durumu
-
-        // Giriş yapmış kullanıcıyı al
         const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
 
-        // Backend'e arama başlatma isteği gönder
         await apiClient.post("/chat-app/start-call/", {
           sender: loggedInUser.username,
           receiver: selectedUser?.id,
           peer_id: peerId,
-          isVideoCall: isVideoCall, // Arama türü: sesli/görüntülü
+          isVideoCall,
         });
       });
 
-      // Arama çağrısı yanıtlandığında
-      peer.on("call", (call) => {
-        console.log("Arama kabul edildi, bağlanılıyor...");
-        setIsWaitingForAcceptance(false); // Arama bekleme durumu sıfırla
-        setIsCalling(false); // Popup'u kapat
-        setOnCall(selectedUser); 
+      peerRef.current.on("call", (call) => {
+        setIsWaitingForAcceptance(false);
+        setIsCalling(false);
+        setOnCall(selectedUser);
 
-        // Medya cihazlarına erişim
         navigator.mediaDevices
           .getUserMedia({ video: isVideoCall, audio: true })
           .then((stream) => {
-            call.answer(stream); // Aramayı yanıtla
+            call.answer(stream);
 
-            // Yerel video akışını ayarla ve oynat
             if (localVideoRef.current) {
               localVideoRef.current.srcObject = stream;
-
-              // Oynatma işlemi için Promise kullan
-              const playPromise = localVideoRef.current.play();
-              if (playPromise !== undefined) {
-                playPromise
-                  .then(() => {
-                    console.log("Yerel video oynatılıyor...");
-                  })
-                  .catch((err) => {
-                    console.error("Yerel video oynatma hatası:", err);
-                  });
-              }
+              localVideoRef.current.play().catch(() => { });
             }
 
-            // Uzak video akışını dinle
             call.on("stream", (remoteStream) => {
-              console.log("Uzak akış alındı");
               if (remoteVideoRef.current) {
-                // Eğer akış farklıysa yeni akışı ata
-                if (remoteVideoRef.current.srcObject !== remoteStream) {
-                  remoteVideoRef.current.srcObject = remoteStream;
-
-                  // Metadata yüklendiğinde oynat
-                  remoteVideoRef.current.addEventListener("loadedmetadata", () => {
-                    const playPromise = remoteVideoRef.current?.play();
-                    if (playPromise !== undefined) {
-                      playPromise
-                        .then(() => {
-                          console.log("Uzak video oynatılıyor...");
-                        })
-                        .catch((err) => {
-                          console.error("Uzak video oynatma hatası:", err);
-                        });
-                    }
-                  });
-                }
+                remoteVideoRef.current.srcObject = remoteStream;
+                remoteVideoRef.current.play().catch(() => { });
               }
             });
 
-            call.on("error", (err) => {
-              console.error("Call error:", err);
-            });
+            call.on("close", resetCallState);
+            call.on("error", resetCallState);
           })
-          .catch((err) => {
-            console.error("Medya cihazına erişim hatası:", err);
-            setIsCalling(false); // Hata durumunda popup'u kapat
+          .catch(() => {
+            setIsCalling(false);
           });
       });
 
-      peer.on("error", (err) => {
-        console.error("PeerJS error:", err);
-        setIsCalling(false); // Hata durumunda popup'u kapat
+      peerRef.current.on("disconnected", resetCallState);
+      peerRef.current.on("error", () => {
+        setIsCalling(false);
         setIsWaitingForAcceptance(false);
+        resetCallState();
       });
-    } catch (error) {
-      console.error("Error starting call:", error);
+    } catch {
       setIsCalling(false);
       setIsWaitingForAcceptance(false);
     }
   };
 
+  // Gelen aramayı kabul eder
   const acceptCall = (incomingCall: IncomingCall | null, setIncomingCall: (call: IncomingCall | null) => void) => {
     if (!incomingCall) return;
 
-    const peer = new Peer();
+    if (!peerRef.current) {
+      peerRef.current = new Peer();
+    }
 
-    peer.on("open", () => {
-      console.log("Peer connected with ID:", peer.id);
-
-      setIncomingCall(null); // Gelen çağrıyı kapat
-      console.log("Incoming call accepted, connecting...", incomingCall);
+    peerRef.current.on("open", () => {
+      setIncomingCall(null);
       setOnCall({ username: incomingCall.callerName, photo: incomingCall.callerPhoto } as UserType);
 
       navigator.mediaDevices
         .getUserMedia({ video: true, audio: true })
         .then((stream) => {
-          // Yerel video gösterimi
+          const call = peerRef.current?.call(incomingCall.callerPeerId, stream);
+
           if (localVideoRef.current) {
             localVideoRef.current.srcObject = stream;
-            const localPlayPromise = localVideoRef.current.play();
-            if (localPlayPromise !== undefined) {
-              localPlayPromise
-                .then(() => {
-                  console.log("Local video is playing...");
-                })
-                .catch((error) => {
-                  console.error("Error while playing local video:", error);
-                });
-            }
+            localVideoRef.current.play().catch(() => { });
           }
 
-          // Gelen çağrıya cevap verme
-          const call = peer.call(incomingCall.callerPeerId, stream);
-
-          call.on("stream", (remoteStream: MediaStream) => {
-            console.log("Remote stream received:", remoteStream);
-
-            if (
-              remoteVideoRef.current &&
-              remoteVideoRef.current.srcObject !== remoteStream
-            ) {
-              remoteVideoRef.current.srcObject = remoteStream;
-
-              // Metadata tamamen yüklendiğinde video oynat
-              remoteVideoRef.current.addEventListener("loadedmetadata", () => {
-                const remotePlayPromise = remoteVideoRef.current?.play();
-                if (remotePlayPromise !== undefined) {
-                  remotePlayPromise
-                    .then(() => {
-                      console.log("Remote video is playing...");
-                    })
-                    .catch((error) => {
-                      console.error("Error while playing remote video:", error);
-                    });
-                }
-              });
-            }
-          });
-
-          call.on("error", (err) => {
-            console.error("Call error:", err);
-          });
-        })
-        .catch((err) => {
-          console.error("Error accessing media devices:", err);
-        });
-    });
-
-    peer.on("call", (call) => {
-      // Çağrıya cevap ver
-      navigator.mediaDevices
-        .getUserMedia({ video: true, audio: true })
-        .then((stream) => {
-          call.answer(stream); // Çağrıyı yanıtla
-          if (localVideoRef.current) {
-            localVideoRef.current.srcObject = stream;
-
-            const localPlayPromise = localVideoRef.current.play();
-            if (localPlayPromise !== undefined) {
-              localPlayPromise
-                .then(() => {
-                  console.log("Local video is playing...");
-                })
-                .catch((error) => {
-                  console.error("Error while playing local video:", error);
-                });
-            }
-          }
-
-          call.on("stream", (remoteStream: MediaStream) => {
-            console.log("Remote stream received");
+          call?.on("stream", (remoteStream) => {
             if (remoteVideoRef.current) {
               remoteVideoRef.current.srcObject = remoteStream;
-
-              const remotePlayPromise = remoteVideoRef.current.play();
-              if (remotePlayPromise !== undefined) {
-                remotePlayPromise
-                  .then(() => {
-                    console.log("Remote video is playing...");
-                  })
-                  .catch((error) => {
-                    console.error("Error while playing remote video:", error);
-                  });
-              }
+              remoteVideoRef.current.play().catch(() => { });
             }
           });
+
+          call?.on("close", resetCallState);
+          call?.on("error", resetCallState);
         })
-        .catch((err) => {
-          console.error("Error accessing media devices:", err);
-        });
+        .catch(() => { });
     });
+  };
+
+  // Aramayı sonlandırır
+  const endCall = async () => {
+    try {
+      if (peerRef.current) {
+        const peerId = peerRef.current.id;
+        peerRef.current.destroy();
+        peerRef.current = null;
+
+        const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
+        if (onCall) {
+          await apiClient.post("/chat-app/end-call/", {
+            sender: loggedInUser.username,
+            receiver: onCall.id,
+            peer_id: peerId,
+            isVideoCall: true,
+          });
+        }
+
+        resetCallState();
+      }
+    } catch {
+      console.error("Error ending call");
+    }
+  };
+
+  // Arama durumlarını sıfırlar
+  const resetCallState = () => {
+    setIsCalling(false);
+    setIsWaitingForAcceptance(false);
+    setOnCall(null);
+
+    if (localVideoRef.current?.srcObject) {
+      const tracks = (localVideoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach((track) => track.stop());
+      localVideoRef.current.srcObject = null;
+    }
+
+    if (remoteVideoRef.current?.srcObject) {
+      const tracks = (remoteVideoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach((track) => track.stop());
+      remoteVideoRef.current.srcObject = null;
+    }
+  };
+
+  // Kamerayı açıp kapatır
+  const toggleCamera = () => {
+    toggleMediaTrack("video");
+  };
+
+  // Sesi açıp kapatır
+  const toggleAudio = () => {
+    toggleMediaTrack("audio");
+  };
+
+  // Ortak medya kontrol fonksiyonu
+  const toggleMediaTrack = (type: "audio" | "video") => {
+    const stream = localVideoRef.current?.srcObject as MediaStream | null;
+    if (stream) {
+      const tracks = type === "audio" ? stream.getAudioTracks() : stream.getVideoTracks();
+      tracks.forEach((track) => {
+        track.enabled = !track.enabled;
+        if (!track.enabled) track.stop();
+      });
+    }
   };
 
   return (
@@ -252,6 +208,9 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         onCall,
         startCall,
         acceptCall,
+        endCall,
+        toggleCamera,
+        toggleAudio,
       }}
     >
       {children}

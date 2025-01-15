@@ -24,6 +24,7 @@ interface ChatStore {
   fetchFriendRequests: () => Promise<void>;
   acceptFriendRequest: (username: string) => Promise<void>;
   declineFriendRequest: (username: string) => Promise<void>;
+  deleteFriendRequest: (username: string) => Promise<void>;
   initializeSocket: (url: string) => void;
   closeSocket: () => void;
   acceptCall: (
@@ -151,7 +152,6 @@ const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-
   declineFriendRequest: async (username: string) => {
     try {
       await apiClient.post("/chat-app/decline-friend-request/", { username });
@@ -162,6 +162,32 @@ const useChatStore = create<ChatStore>((set, get) => ({
       }));
     } catch (error) {
       console.error("Error declining friend request:", error);
+    }
+  },
+
+  deleteFriendRequest: async (username: string) => {
+    const { users, selectedUser } = get();
+
+    try {
+      const response = await apiClient.post("/chat-app/delete-friend/", { username });
+
+      // Kullanıcıyı arkadaş listesinden çıkar
+      const updatedUsers = users.filter((user) => user.username !== username);
+      set((state) => ({
+        users: updatedUsers
+      }))
+
+      // Eğer silinen kullanıcı seçiliyse, seçim temizlenir
+      if (selectedUser?.username === username) {
+        set((state) => ({
+          selectedUser: null
+        }))
+      }
+
+      console.log("Friend deleted successfully:", response.data);
+    } catch (error) {
+      console.error("Error deleting friend:", error);
+      throw error;
     }
   },
 
