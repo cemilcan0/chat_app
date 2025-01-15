@@ -1,6 +1,5 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from django.contrib.auth.models import User
 from rest_framework import serializers, status
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -10,11 +9,17 @@ from rest_framework.views import APIView
 from chat_app.authentication import BearerAuthentication
 from chat_app.serializers import UserSerializer
 
+from django.contrib.auth import get_user_model
+
+# Kullanıcı modelini getirme
+User = get_user_model()
+
 
 class StartCallSerializer(serializers.Serializer):
     receiver = serializers.SlugField()
     sender = serializers.SlugField()
     peer_id = serializers.CharField()
+    isVideoCall = serializers.BooleanField()
 
 
 class StartCall(APIView):

@@ -6,9 +6,9 @@ from channels.generic.websocket import WebsocketConsumer
 
 class MessageConsumer(WebsocketConsumer):
     def connect(self):
-        self.room_name = self.scope['url_route']['kwargs']['username']
-        self.room_group_name = 'chat_%s' % self.room_name
-        print(self.room_name, self.room_group_name)
+        self.user_id = self.scope['url_route']['kwargs']['id']
+        self.room_group_name = f'chat_{self.user_id}'
+        print(self.user_id, self.room_group_name)
 
         async_to_sync(self.channel_layer.group_add)(
             self.room_group_name,

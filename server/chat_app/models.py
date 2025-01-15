@@ -1,22 +1,75 @@
-from django.contrib.auth.models import User
+import uuid
+from django.conf import settings
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
 # Create your models here.
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, username, password=None, **extra_fields):
+        if not email:
+            raise ValueError("The Email field must be set")
+        email = self.normalize_email(email)
+        user = self.model(email=email, username=username, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, username, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
+
+        return self.create_user(email, username, password, **extra_fields)
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    username = models.CharField(max_length=50, unique=True)
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=128)
+    date_joined = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+
+    objects = CustomUserManager()
+
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = ["username"]
+
+    def __str__(self):
+        return self.username
+
+    def get_full_name(self):
+        """
+        Kullanıcının tam adını döndürür (first_name + last_name).
+        """
+        return f"{self.first_name} {self.last_name}".strip()
+
+
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
-    photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
-    status = models.CharField(default="Hello there!", max_length=255, blank=True, null=True)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
+    photo = models.ImageField(
+        default='girl.svg', upload_to='profile_photos/', blank=True, null=True)
+    status = models.CharField(
+        default="Hello there!", max_length=255, blank=True, null=True)
     online = models.BooleanField(default=False)
 
     def __str__(self):
         return self.user.username
 
 
-@receiver(post_save, sender=User)
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_user_profile(sender, instance, created, *args, **kwargs):
     if created:
         Profile.objects.create(user_id=instance.pk)
@@ -25,34 +78,45 @@ def create_user_profile(sender, instance, created, *args, **kwargs):
 class Message(models.Model):
     text = models.TextField()
     date_time = models.DateTimeField(auto_now_add=True, blank=True)
-    sender = models.ForeignKey(User, related_name='sender', on_delete=models.CASCADE)
-    receiver = models.ForeignKey(User, related_name='receiver', on_delete=models.CASCADE)
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='sender', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='receiver', on_delete=models.CASCADE)
     read = models.BooleanField(default=False)
 
 
 class ChatGroup(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    admin = models.ForeignKey(User, related_name='admin_groups', on_delete=models.CASCADE)
-    members = models.ManyToManyField(User, related_name='chat_groups')  # 'groups' yerine 'chat_groups' kullanıldı
+    admin = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='admin_groups', on_delete=models.CASCADE)
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name='chat_groups')
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     def __str__(self):
         return self.name
-    
+
+
 class GroupMessage(models.Model):
-    group = models.ForeignKey(ChatGroup, related_name='messages', on_delete=models.CASCADE)
-    sender = models.ForeignKey(User, related_name='group_messages', on_delete=models.CASCADE)
+    group = models.ForeignKey(
+        ChatGroup, related_name='messages', on_delete=models.CASCADE)
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='group_messages', on_delete=models.CASCADE)
     text = models.TextField()
     date_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.sender.username}: {self.text[:30]}"
-    
+
+
 class Friendship(models.Model):
-    from_user = models.ForeignKey(User, related_name='friendship_requests_sent', on_delete=models.CASCADE)
-    to_user = models.ForeignKey(User, related_name='friendship_requests_received', on_delete=models.CASCADE)
-    status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('accepted', 'Accepted')], default='pending')
+    from_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='friendship_requests_sent', on_delete=models.CASCADE)
+    to_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='friendship_requests_received', on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=[(
+        'pending', 'Pending'), ('accepted', 'Accepted')], default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

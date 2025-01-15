@@ -3,7 +3,6 @@ import datetime
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth.models import User
 from django.db.models import Q
 from rest_framework import serializers
 
@@ -13,17 +12,24 @@ from chat_app.models import Message
 
 from rest_framework import serializers
 from chat_app.models import ChatGroup, GroupMessage
+from django.contrib.auth import get_user_model
+
+# Kullanıcı modelini getirme
+User = get_user_model()
 
 
 class BaseUserSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='pk', read_only=True)
     name = serializers.SerializerMethodField()
     photo = serializers.ImageField(source='profile.photo')
     online = serializers.BooleanField(source='profile.online')
     status = serializers.CharField(source='profile.status')
+    email = serializers.EmailField()
 
     class Meta:
         model = User
-        fields = ('name', 'username', 'photo', 'online', 'status')
+        fields = ('id', 'name', 'username', 'photo',
+                  'online', 'status', 'email')
 
     def get_name(self, obj):
         if isinstance(obj, User):
@@ -93,20 +99,20 @@ class GroupMessageSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.Serializer):
     text = serializers.CharField()
-    receiver = serializers.SlugField(write_only=True)
+    receiver = serializers.UUIDField(write_only=True)
 
     def create(self, validated_data):
         try:
-            user = User.objects.get(username=validated_data['receiver'])
+            user = User.objects.get(pk=validated_data['receiver'])
             message = Message()
             message.text = validated_data['text']
             message.sender = self.context['request'].user
             message.receiver = user
             message.save()
-            # __broadcast yerine _broadcast kullanıyoruz
             self._broadcast(message)
             return validated_data
         except User.DoesNotExist:
+            print('User not found from serializers.')
             raise serializers.ValidationError({'receiver': 'User not found.'})
         except Exception as e:
             raise serializers.ValidationError({'error': str(e)})
@@ -114,11 +120,10 @@ class MessageSerializer(serializers.Serializer):
     def _broadcast(self, message: Message):
         serializer = MessageModelSerializer(message, many=False)
         n_message = serializer.data
-        n_message['read'] = False
-        print(n_message)
         channel_layer = get_channel_layer()
+        print(f"Sending message to chat_{message.receiver.id}")
         async_to_sync(channel_layer.group_send)(
-            'chat_%s' % message.receiver.username, {
+            'chat_%s' % message.receiver.id, {
                 'type': 'new_message',
                 'message': n_message
             }
@@ -195,6 +200,8 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
 
 class FriendsWithLastMessageSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='pk', read_only=True)
+    email = serializers.EmailField()
     name = serializers.SerializerMethodField()
     photo = serializers.ImageField(source='profile.photo')
     online = serializers.BooleanField(source='profile.online')
@@ -204,8 +211,8 @@ class FriendsWithLastMessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('name', 'username', 'photo', 'online',
-                  'status', 'messages', 'last_message')
+        fields = ('id', 'email', 'name', 'username', 'photo',
+                  'online', 'status', 'messages', 'last_message')
 
     def get_name(self, obj):
         if obj.first_name:

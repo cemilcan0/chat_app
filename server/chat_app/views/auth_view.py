@@ -2,7 +2,7 @@ import json
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core import serializers
 from django.http import HttpResponse
 
@@ -21,16 +21,13 @@ from rest_framework.views import APIView
 from chat_app.authentication import BearerAuthentication
 from chat_app.serializers import RegistrationSerializer, UsersWithMessageSerializer, UserSerializer, EditProfileSerializer
 
+# Kullanıcı modelini getirme
+User = get_user_model()
+
 
 class Login(ObtainAuthToken):
 
     def post(self, request, *args, **kwargs):
-        """
-        @param request:
-        @param args:
-        @param kwargs:
-        @return:
-        """
         serializer = self.serializer_class(
             data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -43,10 +40,7 @@ class Login(ObtainAuthToken):
             'user': serialize_user.data,
         })
 
-    def __change_status(self, user: User):
-        """
-        @param user:
-        """
+    def __change_status(self, user):
         profile = user.profile
         profile.online = True
         profile.save()
@@ -85,12 +79,7 @@ class UsersView(generics.ListAPIView):
         return users
 
 
-def notify_others(user: User):
-    """
-
-    @param user:
-    @return:
-    """
+def notify_others(user):
     serializer = UserSerializer(user, many=False)
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
@@ -102,9 +91,6 @@ def notify_others(user: User):
 
 
 def test_socket(request):
-    # users = User.objects.all()
-    # return render(request, template_name='test.html', context={'users': users})
-    # serializer = UserSerializer(user, many=False)
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         'chat_rifat', {
@@ -127,7 +113,6 @@ class EditProfileView(APIView):
             user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            # Kullanıcı bilgilerini serialize et
             user_serializer = UserSerializer(user, many=False)
             return Response({
                 "message": "Profile updated successfully",

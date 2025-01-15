@@ -86,7 +86,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
     const newMessage = {
       text: messageText,
       sender: loggedInUser.username,
-      receiver: selectedUser.username,
+      receiver: selectedUser.id,
       date_time: new Date().toISOString(),
       read: true,
     };

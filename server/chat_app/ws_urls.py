@@ -8,5 +8,5 @@ from chat_app.consumers.group_consumer import GroupConsumer
 websocket_urlpatterns = [
     path('ws/notification/', NewUserConsumer.as_asgi()),
     path('ws/group/<int:group_id>/', GroupConsumer.as_asgi()),
-    path('ws/message/<str:username>/', MessageConsumer.as_asgi())
+    path('ws/message/<str:id>/', MessageConsumer.as_asgi())
 ]

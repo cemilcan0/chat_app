@@ -10,6 +10,7 @@ const Register: React.FC = () => {
     username: "",
     first_name: "",
     last_name: "",
+    email: "",
     password: "",
   });
   const navigate = useNavigate();
@@ -115,6 +116,17 @@ const Register: React.FC = () => {
             </div>
             <div>
               <input
+                type="email"
+                placeholder="Email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 bg-[#3A3248] border border-[#4E435F] rounded-lg text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <input
                 type="password"
                 placeholder="Password"
                 name="password"
@@ -127,8 +139,8 @@ const Register: React.FC = () => {
             <button
               type="submit"
               className={`w-full py-2 rounded-lg transition ${loading
-                  ? "bg-purple-600 opacity-50 text-white cursor-not-allowed"
-                  : "bg-purple-600 hover:bg-purple-700 text-white"
+                ? "bg-purple-600 opacity-50 text-white cursor-not-allowed"
+                : "bg-purple-600 hover:bg-purple-700 text-white"
                 }`}
               disabled={loading}
             >

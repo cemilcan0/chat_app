@@ -41,6 +41,7 @@ const Rightbar: React.FC = () => {
   }, [selectedUser?.messages]);
 
   const handleSendMessage = async () => {
+    console.log(selectedUser);
     if (selectedUser && message.trim() !== "") {
       try {
         await sendMessage(message, loggedInUser);

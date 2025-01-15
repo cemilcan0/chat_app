@@ -47,9 +47,9 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Backend'e arama başlatma isteği gönder
         await apiClient.post("/chat-app/start-call/", {
           sender: loggedInUser.username,
-          receiver: selectedUser?.username,
+          receiver: selectedUser?.id,
           peer_id: peerId,
-          is_video_call: isVideoCall, // Arama türü: sesli/görüntülü
+          isVideoCall: isVideoCall, // Arama türü: sesli/görüntülü
         });
       });
 
