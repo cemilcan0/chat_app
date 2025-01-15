@@ -18,11 +18,11 @@ const Chat: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!storedUser || !storedUser.username) return;
+    if (!storedUser || !storedUser.id) return;
 
     try {
-      const socketUrl = `wss://testapi.berat-dogan.com/ws/message/${storedUser.username}/`;
-      // const socketUrl = `ws://localhost:8000/ws/message/${storedUser.username}/`;
+      const socketUrl = `wss://testapi.berat-dogan.com/ws/message/${storedUser.id}/`;
+      // const socketUrl = `ws://localhost:8000/ws/message/${storedUser.id}/`;
       initializeSocket(socketUrl);
     } catch (error) {
       console.error("Error initializing socket:", error);
