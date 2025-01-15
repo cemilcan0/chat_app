@@ -2,11 +2,13 @@ import React, { useState, useEffect } from "react";
 import useChatStore from "../store/chatStore";
 import AddFriend from "./add-friend";
 import Profile from "./profile";
-
+import addGroup from '../../../assets/icons/add-group.svg';
 
 const Leftbar: React.FC = () => {
   const { users, selectedUser, setSelectedUser } = useChatStore();
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+    const [isInputVisible, setIsInputVisible] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filteredUsers, setFilteredUsers] = useState(users);
   const [isLoading, setIsLoading] = useState(true); // Yükleme durumu
@@ -67,6 +69,39 @@ const Leftbar: React.FC = () => {
         {/* Giriş Yapmış Kullanıcı */}
         <Profile />
 
+        <div className="relative inline-block text-left w-full">
+          {/* Dropdown Button */}
+          <div className="flex justify-between items-center p-2 w-full">
+            <h2 className="text-white text-lg font-semibold">Conversations</h2>
+            <button
+              className="flex items-center"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              <img src={addGroup} alt="add group" className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Dropdown Menu */}
+          {isOpen && (
+            <div className="absolute right-0 mt-2 w-56 origin-top-right bg-gray-800 divide-y divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+              <div className="py-1">
+                <a
+                  href="#"
+                  className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                >
+                  Add New Friend
+                </a>
+                <a
+                  href="#"
+                  className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                >
+                  Create Group
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="flex items-center mb-4 p-2 rounded-full shadow-md bg-black bg-opacity-20">
           <div className="relative flex-grow">
             <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -111,7 +146,7 @@ const Leftbar: React.FC = () => {
               user.messages && user.messages.length > 0
                 ? user.messages[user.messages.length - 1]
                 : null;
-                
+
             return (
               <div
                 key={user.username}
@@ -163,7 +198,7 @@ const Leftbar: React.FC = () => {
                       const messageDate = new Date(lastMessage.date_time);
                       const today = new Date();
 
-                    // Eğer mesaj bugün gönderilmişse, sadece saati göster
+                      // Eğer mesaj bugün gönderilmişse, sadece saati göster
                       if (
                         messageDate.getDate() === today.getDate() &&
                         messageDate.getMonth() === today.getMonth() &&
@@ -175,7 +210,7 @@ const Leftbar: React.FC = () => {
                         });
                       }
 
-                    // Eğer mesaj başka bir gün gönderilmişse, tarihi göster
+                      // Eğer mesaj başka bir gün gönderilmişse, tarihi göster
                       return messageDate.toLocaleDateString([], {
                         year: "numeric",
                         month: "short",

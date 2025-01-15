@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import plusIcon from '../../../assets/icons/plus.svg';
 import check from '../../../assets/icons/check.svg';
 import cancel from '../../../assets/icons/cancel.svg';
-import closeIcon from '../../../assets/icons/cancel.svg'; // Kapatma simgesi
+import closeIcon from '../../../assets/icons/cancel.svg';
 import useChatStore from '../store/chatStore';
 import apiClient from '../utils/apiClient';
 
