@@ -301,7 +301,7 @@ class SendFriendRequestSerializer(serializers.Serializer):
             'sender': UserWithPhotoURLSerializer(sender, context=self.context).data,
             'message': 'You have a new friend request.'
         }
-        self._broadcast(f'chat_{receiver.username}',
+        self._broadcast(f'chat_{receiver.id}',
                         'new_friendship_request', message_content)
         return {'sender': sender, 'receiver': receiver}
 
