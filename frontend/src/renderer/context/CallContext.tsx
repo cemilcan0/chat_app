@@ -7,6 +7,7 @@ interface IncomingCall {
   callerName: string;
   callerPhoto: string;
   callerPeerId: string;
+  isVideoCall: boolean;
 }
 
 interface CallContextProps {
@@ -108,8 +109,10 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIncomingCall(null);
       setOnCall({ username: incomingCall.callerName, photo: incomingCall.callerPhoto } as UserType);
 
+      const isVideoCall = incomingCall.isVideoCall; // Gelen çağrı türü
+
       navigator.mediaDevices
-        .getUserMedia({ video: true, audio: true })
+        .getUserMedia({ video: isVideoCall, audio: true })
         .then((stream) => {
           const call = peerRef.current?.call(incomingCall.callerPeerId, stream);
 
@@ -120,8 +123,14 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
           call?.on("stream", (remoteStream) => {
             if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = remoteStream;
-              remoteVideoRef.current.play().catch(() => { });
+              const videoTrack = remoteStream.getVideoTracks()[0];
+              if (videoTrack?.enabled) {
+                remoteVideoRef.current.srcObject = remoteStream;
+                remoteVideoRef.current.play().catch(() => { });
+              } else {
+                remoteVideoRef.current.srcObject = null; // Kamera kapalıysa boş bırak
+                // Kamerası kapalı olan kişinin avatarını göster
+              }
             }
           });
 
@@ -192,8 +201,7 @@ export const CallProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (stream) {
       const tracks = type === "audio" ? stream.getAudioTracks() : stream.getVideoTracks();
       tracks.forEach((track) => {
-        track.enabled = !track.enabled;
-        if (!track.enabled) track.stop();
+        track.enabled = !track.enabled; // Medya akışını aç/kapat
       });
     }
   };

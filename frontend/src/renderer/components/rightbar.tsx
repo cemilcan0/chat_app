@@ -3,6 +3,8 @@ import useChatStore from "../store/chatStore";
 import { useCall } from "../context/CallContext";
 import phone from "../../../assets/icons/phone-call.svg";
 import camera from "../../../assets/icons/camera.svg";
+import cameraOff from "../../../assets/icons/camera-off.svg";
+import muted from "../../../assets/icons/muted.svg";
 import info from "../../../assets/icons/info.svg";
 import dummyPhoto from "../../../assets/images/photo.jpg";
 import microphone from "../../../assets/icons/microphone.svg";
@@ -30,6 +32,9 @@ const Rightbar: React.FC = () => {
 
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
   const videoStreamRef = useRef<MediaStream | null>(null);
+
+  const [isCameraEnabled, setIsCameraEnabled] = useState(true);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
 
   const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -75,6 +80,16 @@ const Rightbar: React.FC = () => {
     }
   };
 
+  const handleToggleCamera = () => {
+    toggleCamera();
+    setIsCameraEnabled((prev) => !prev);
+  };
+
+  const handleToggleAudio = () => {
+    toggleAudio();
+    setIsAudioEnabled((prev) => !prev);
+  };
+
   return (
     <div className="w-2/3 xl:w-3/4 bg-white flex">
       <div className="flex flex-col w-full p-4">
@@ -96,15 +111,31 @@ const Rightbar: React.FC = () => {
                 ref={remoteVideoRef}
                 autoPlay
                 className="w-auto max-h-[300px] rounded-lg aspect-video border shadow-md"
+                style={{ display: remoteVideoRef.current?.srcObject ? "block" : "none" }}
               ></video>
+              {!remoteVideoRef.current?.srcObject && (
+                <img
+                  src={selectedUser?.photo || dummyPhoto}
+                  alt="Avatar"
+                  className="w-auto max-h-[300px] rounded-lg aspect-video border shadow-md"
+                />
+              )}
             </div>
           </div>
           <div className="flex justify-center space-x-4 py-4">
-            <button onClick={() => toggleAudio()}>
-              <img src={microphone} alt="Mute" className="w-6 h-6" />
+            <button onClick={handleToggleAudio}>
+              <img
+                src={isAudioEnabled ? microphone : muted}
+                alt="Toggle Audio"
+                className="w-6 h-6"
+              />
             </button>
-            <button onClick={() => toggleCamera()}>
-              <img src={camera} alt="Toggle Camera" className="w-6 h-6" />
+            <button onClick={handleToggleCamera}>
+              <img
+                src={isCameraEnabled ? camera : cameraOff}
+                alt="Toggle Camera"
+                className="w-6 h-6"
+              />
             </button>
             <button onClick={endCall}>
               <img src={callCancel} alt="End Call" className="w-6 h-6" />
