@@ -6,13 +6,19 @@ import closeIcon from '../../../assets/icons/cancel.svg'; // Kapatma simgesi
 import useChatStore from '../store/chatStore';
 import apiClient from '../utils/apiClient';
 
-const AddFriend: React.FC = () => {
+interface AddFriendProps {
+  onPendingRequestCountChange?: (count: number) => void; // Callback prop
+}
+
+const AddFriend: React.FC<AddFriendProps> = ({ onPendingRequestCountChange }) => {
   const { friendRequests, fetchFriendRequests, acceptFriendRequest, declineFriendRequest } = useChatStore();
 
   const [isInputVisible, setIsInputVisible] = useState<boolean>(false);
   const [username, setUsername] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [localFriendRequests, setLocalFriendRequests] = useState(friendRequests);
+
 
   const handleAddFriend = async () => {
     if (username.trim() === '') {
@@ -25,6 +31,10 @@ const AddFriend: React.FC = () => {
       setUsername('');
       setErrorMessage('');
       setSuccessMessage('Friend request sent successfully!');
+
+      setLocalFriendRequests((prev) =>
+        prev.filter((request) => request.username !== username)
+      );
 
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error: any) {
@@ -41,6 +51,13 @@ const AddFriend: React.FC = () => {
   useEffect(() => {
     fetchFriendRequests();
   }, [fetchFriendRequests]);
+
+  useEffect(() => {
+    // Notify parent component of pending request count change
+    if (onPendingRequestCountChange) {
+      onPendingRequestCountChange(friendRequests.length);
+    }
+  }, [friendRequests, onPendingRequestCountChange]);
 
   return (
     <div className="relative">
