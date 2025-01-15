@@ -36,8 +36,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
 
     // Genel notification WebSocket'e bağlanıyoruz
-    websocketService.connect("wss://testapi.berat-dogan.com/ws/notification/");
-    // websocketService.connect("ws://localhost:8000/ws/notification/");
+    // websocketService.connect("wss://testapi.berat-dogan.com/ws/notification/");
+    websocketService.connect(`ws://localhost:8000/ws/notification/${storedUser.id}/`);
     websocketService.onMessage((data) => {
       if (data.type === "new_user") {
         addNotification({
