@@ -6,7 +6,7 @@ from rest_framework.authtoken import views
 from chat_app.views.call_view import StartCall, EndCall
 from chat_app.views.message_view import MessageView, ReadMessageView
 from config import settings
-from chat_app.views.friendship_view import SendFriendRequestView, AcceptFriendRequestView, FriendsView, DeclineFriendRequestView, PendingFriendRequestsView
+from chat_app.views.friendship_view import SendFriendRequestView, AcceptFriendRequestView, FriendsView, DeclineFriendRequestView, PendingFriendRequestsView, DeleteFriendView
 
 
 from chat_app.views.group_view import CreateGroupView, AddGroupMemberView
@@ -31,4 +31,5 @@ urlpatterns = [
     path('accept-friend-request/', AcceptFriendRequestView.as_view(), name='accept-friend-request'),
     path('decline-friend-request/', DeclineFriendRequestView.as_view(), name='decline-friend-request'),
     path('pending-friend-requests/', PendingFriendRequestsView.as_view(), name='pending-friend-requests'),
+    path('delete-friend/', DeleteFriendView.as_view(), name='delete-friend'),
 ]
