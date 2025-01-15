@@ -21,6 +21,8 @@ User = get_user_model()
 class BaseUserSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(source='pk', read_only=True)
     name = serializers.SerializerMethodField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
     photo = serializers.ImageField(source='profile.photo')
     online = serializers.BooleanField(source='profile.online')
     status = serializers.CharField(source='profile.status')
@@ -28,7 +30,7 @@ class BaseUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'name', 'username', 'photo',
+        fields = ('id', 'name', 'first_name', 'last_name', 'username', 'photo',
                   'online', 'status', 'email')
 
     def get_name(self, obj):
