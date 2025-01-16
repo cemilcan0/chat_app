@@ -121,15 +121,7 @@ const Rightbar: React.FC = () => {
                 ref={remoteVideoRef}
                 autoPlay
                 className="w-auto max-h-[300px] rounded-lg aspect-video border shadow-md"
-                style={{ display: remoteVideoRef.current?.srcObject ? "block" : "none" }}
               ></video>
-              {!remoteVideoRef.current?.srcObject && (
-                <img
-                  src={selectedUser?.photo || dummyPhoto}
-                  alt="Avatar"
-                  className="w-auto max-h-[300px] rounded-lg aspect-video border shadow-md"
-                />
-              )}
             </div>
           </div>
           <div className="flex justify-center space-x-4 py-4">
