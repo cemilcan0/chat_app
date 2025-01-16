@@ -5,7 +5,10 @@ import useChatStore from "../store/chatStore";
 import { useCall } from "../context/CallContext";
 
 const Chat: React.FC = () => {
-  const { initializeSocket, closeSocket, fetchUsers } = useChatStore();
+  const { initializeSocket, closeSocket, fetchUsers, users } = useChatStore();
+  useEffect(() => {
+    console.log(users)
+  },[users])
 
   const storedUser = useMemo(() => {
     try {

@@ -15,7 +15,7 @@ interface ChatStore {
   resetStore: () => void;
 
   users: UserType[];
-  selectedUser: UserType | null;
+  setUsers: (users: UserType[] | ((prevUsers: UserType[]) => UserType[])) => void;  selectedUser: UserType | null;
   incomingCall: IncomingCall | null;
   friendRequests: UserType[];
   fetchUsers: () => Promise<void>;
@@ -36,6 +36,18 @@ interface ChatStore {
 
 const useChatStore = create<ChatStore>((set, get) => ({
   users: [],
+  setUsers: (users: UserType[] | ((prevUsers: UserType[]) => UserType[])) => {
+    if (typeof users === "function") {
+      set((state) => ({
+        users: users(state.users),
+      }));
+    } else {
+      set(() => ({
+        users,
+      }));
+    }
+  },
+  
   selectedUser: null,
   incomingCall: null,
   friendRequests: [],
@@ -216,7 +228,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
                 }
                 : user
             )
-            .filter((user) => user.username !== sender); 
+            .filter((user) => user.username !== sender);
 
           const senderUser = state.users.find((user) => user.username === sender);
           const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -283,7 +295,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
       }
     });
   },
-  
+
 
   resetStore: () => {
     set(() => ({
@@ -294,7 +306,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
       // Diğer state'leri de burada sıfırlayın
     }));
   },
-  
+
 
   closeSocket: () => {
     websocketService.close();
