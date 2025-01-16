@@ -7,6 +7,8 @@ import info from "../../../assets/icons/info.svg";
 import dummyPhoto from "../../../assets/images/photo.jpg";
 import microphone from "../../../assets/icons/microphone.svg";
 import callCancel from "../../../assets/icons/call-cancel.svg";
+import tickRead from "../../../assets/icons/tick-read.svg";
+import tickUnread from "../../../assets/icons/tick-unread.svg";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import trash from "../../../assets/icons/trash.svg";
 
@@ -102,12 +104,12 @@ const Rightbar: React.FC = () => {
   };
 
   const handleDeleteFriend = async () => {
-    if(selectedUser && selectedUser.username) {
+    if (selectedUser && selectedUser.username) {
       const res = await deleteFriendRequest(selectedUser.username)
     }
     setIsInfoPanelOpen(false)
 
-    
+
   }
 
   return (
@@ -242,7 +244,7 @@ const Rightbar: React.FC = () => {
                           </span>
                         )}
                         <div
-                          className={`relative p-2 rounded-md w-fit max-w-xs ${msg.sender === loggedInUser.username
+                          className={`relative pl-3 pb-3 pt-2 pr-2 rounded-md w-fit max-w-xs ${msg.sender === loggedInUser.username
                             ? "bg-[#76589A] text-white"
                             : "bg-[#D4D4D7] text-black"
                             }`}
@@ -250,6 +252,20 @@ const Rightbar: React.FC = () => {
                           <p className="message-text emoji-text">
                             {typeof msg.text === "string" ? msg.text : "Invalid message"}
                           </p>
+
+                          {/* Tik simgesi */}
+                          {msg.sender === loggedInUser.username && (
+                            <div className="absolute bottom-[2px] right-0 flex items-center space-x-[-13px]">
+                              <img
+                                src={msg.read ? tickRead : tickUnread} // İlk tik
+                                className="w-[18px] h-[18px]"
+                              />
+                              <img
+                                src={msg.read ? tickRead : tickUnread} // İkinci tik (okunduysa tickRead, okunmadıysa tickUnread)
+                                className="w-[18px] h-[18px]"
+                              />
+                            </div>
+                          )}
 
                           <span
                             className={`absolute top-1/2 ${msg.sender === loggedInUser.username
@@ -451,17 +467,17 @@ const Rightbar: React.FC = () => {
             </div>
           </div>
           <div className="flex justify-center mt-3">
-          <button
-            onClick={handleDeleteFriend}
-            className="flex items-center justify-center px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75 transition duration-300 ease-in-out"
-          >
-            <img src={trash} className="w-5 h-5 mr-2" />
-            Delete Friend
-          </button>
+            <button
+              onClick={handleDeleteFriend}
+              className="flex items-center justify-center px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75 transition duration-300 ease-in-out"
+            >
+              <img src={trash} className="w-5 h-5 mr-2" />
+              Delete Friend
+            </button>
 
           </div>
 
-          
+
 
         </div>
 

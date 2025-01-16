@@ -6,6 +6,9 @@ from chat_app.authentication import BearerAuthentication
 from django.db.models import Q
 from rest_framework.response import Response
 
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
 from chat_app.serializers import MessageSerializer
 from django.contrib.auth import get_user_model
 
@@ -30,7 +33,8 @@ class MessageView(CreateAPIView):
             print(f"Receiver found: {user.username}")
             return self.create(request, *args, **kwargs)
         except User.DoesNotExist:
-            error_message = f"User with primary key {receiver_id} does not exist."
+            error_message = f"User with primary key {
+                receiver_id} does not exist."
             print(error_message)
             return Response({
                 "error": error_message
@@ -50,17 +54,27 @@ class ReadMessageView(CreateAPIView):
 
     def post(self, request, username):
         try:
-            # Oturum açmış kullanıcıyı al
             user = request.user
 
-            # Kullanıcının aldığı mesajları filtrele
             messages = Message.objects.filter(
                 Q(sender__username=username, receiver=user),
                 read=False  # Sadece okunmamış mesajları al
             )
 
-            # Mesajları read=True olarak güncelle
             updated_count = messages.update(read=True)
+            sender = User.objects.get(username=username)
+            channel_layer = get_channel_layer()
+
+            async_to_sync(channel_layer.group_send)(
+                f"chat_{sender.id}",
+                {
+                    "type": "message_read",
+                    "message": {
+                        "marked_by": user.username,
+                        "count": updated_count
+                    }
+                }
+            )
 
             return Response({
                 "message": f"{updated_count} messages marked as read.",
