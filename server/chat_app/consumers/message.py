@@ -92,6 +92,13 @@ class MessageConsumer(WebsocketConsumer):
             'status': 'accepted_friendship_request'
         }))
 
+    def user_status_change(self, event):
+        message = event['message']
+        self.send(text_data=json.dumps({
+            'type': 'user_status_change',
+            'message': message
+        }))
+
     def disconnect(self, code):
         # Kullanıcıyı offline olarak işaretle ve kaydet
         if hasattr(self, 'user'):
