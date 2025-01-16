@@ -2,6 +2,10 @@ import json
 
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
+from django.contrib.auth import get_user_model
+
+# Kullanıcı modelini getirme
+User = get_user_model()
 
 
 class MessageConsumer(WebsocketConsumer):
@@ -10,11 +14,35 @@ class MessageConsumer(WebsocketConsumer):
         self.room_group_name = f'chat_{self.user_id}'
         print(self.user_id, self.room_group_name)
 
-        async_to_sync(self.channel_layer.group_add)(
-            self.room_group_name,
-            self.channel_name
-        )
-        self.accept()
+        try:
+            # Kullanıcıyı sorgula
+            self.user = User.objects.get(pk=self.user_id)
+            print(f"User found: {self.user.username} (ID: {self.user.id})")
+
+            # Kullanıcıyı online olarak işaretle ve kaydet
+            self.user.profile.online = True
+            self.user.profile.save()
+
+            # Kullanıcının online olduğunu gruba bildir
+            async_to_sync(self.channel_layer.group_add)(
+                self.room_group_name,
+                self.channel_name
+            )
+            self.accept()
+
+            async_to_sync(self.channel_layer.group_send)(
+                self.room_group_name, {
+                    'type': 'user_status_change',
+                    'message': {
+                        'id': str(self.user.id),
+                        'username': self.user.username,
+                        'online': True
+                    }
+                }
+            )
+        except User.DoesNotExist:
+            print(f"No user found with ID: {self.user_id}")
+            self.close()  # Kullanıcı bulunamazsa bağlantıyı kapat
 
     def receive(self, text_data):
         data = json.loads(text_data)
@@ -24,7 +52,7 @@ class MessageConsumer(WebsocketConsumer):
         if call_type == 'call_request':
             async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name, {
-                    'type': 'new_call',  # Bu önemli
+                    'type': 'new_call',
                     'message': message
                 }
             )
@@ -65,7 +93,26 @@ class MessageConsumer(WebsocketConsumer):
         }))
 
     def disconnect(self, code):
+        # Kullanıcıyı offline olarak işaretle ve kaydet
+        if hasattr(self, 'user'):
+            self.user.profile.online = False
+            self.user.profile.save()
+
+            # Kullanıcının offline olduğunu gruba bildir
+            async_to_sync(self.channel_layer.group_send)(
+                self.room_group_name, {
+                    'type': 'user_status_change',
+                    'message': {
+                        'id': str(self.user.id),
+                        'username': self.user.username,
+                        'online': False
+                    }
+                }
+            )
+
+        # Grubun dışına çıkar
         async_to_sync(self.channel_layer.group_discard)(
             self.room_group_name,
             self.channel_name
         )
+        print(f"WebSocket disconnected: {self.channel_name}")
