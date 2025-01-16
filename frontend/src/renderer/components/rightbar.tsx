@@ -3,13 +3,12 @@ import useChatStore from "../store/chatStore";
 import { useCall } from "../context/CallContext";
 import phone from "../../../assets/icons/phone-call.svg";
 import camera from "../../../assets/icons/camera.svg";
-import cameraOff from "../../../assets/icons/camera-off.svg";
-import muted from "../../../assets/icons/muted.svg";
 import info from "../../../assets/icons/info.svg";
 import dummyPhoto from "../../../assets/images/photo.jpg";
 import microphone from "../../../assets/icons/microphone.svg";
 import callCancel from "../../../assets/icons/call-cancel.svg";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import trash from "../../../assets/icons/trash.svg";
 
 
 const Rightbar: React.FC = () => {
@@ -21,9 +20,6 @@ const Rightbar: React.FC = () => {
     isCalling,
     isWaitingForAcceptance,
     onCall,
-    endCall,
-    toggleAudio,
-    toggleCamera,
   } = useCall();
 
   const [message, setMessage] = useState("");
@@ -31,10 +27,8 @@ const Rightbar: React.FC = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Emoji picker görünürlüğü
 
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
+  const [isCameraOn, setIsCameraOn] = useState(false);
   const videoStreamRef = useRef<MediaStream | null>(null);
-
-  const [isCameraEnabled, setIsCameraEnabled] = useState(true);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
 
   const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -48,7 +42,6 @@ const Rightbar: React.FC = () => {
   }, [selectedUser?.messages]);
 
   const handleSendMessage = async () => {
-    console.log(selectedUser);
     if (selectedUser && message.trim() !== "") {
       try {
         await sendMessage(message, loggedInUser);
@@ -70,6 +63,34 @@ const Rightbar: React.FC = () => {
     handleSendMessage();
   };
 
+  const handleToggleCamera = async () => {
+    if (isCameraOn) {
+      // Kamera kapatılır
+      if (videoStreamRef.current) {
+        const tracks = videoStreamRef.current.getTracks();
+        tracks.forEach((track) => track.stop()); // Tüm kamera akışlarını durdur
+        videoStreamRef.current = null; // Referansı temizle
+      }
+      setIsCameraOn(false);
+    } else {
+      // Kamera açılır
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoStreamRef.current = stream; // Akışı referans olarak sakla
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream; // Videoyu kameradan gelen akışa bağla
+        }
+        setIsCameraOn(true);
+      } catch (error) {
+        console.error("Kamera açılamadı:", error);
+      }
+    }
+  };
+
+  const closeCallPopup = () => {
+    // Implement the logic to close the call popup
+  };
+
   const handleStartCall = async (isVideoCall: boolean) => {
     try {
       if (selectedUser) {
@@ -80,15 +101,14 @@ const Rightbar: React.FC = () => {
     }
   };
 
-  const handleToggleCamera = () => {
-    toggleCamera();
-    setIsCameraEnabled((prev) => !prev);
-  };
+  const handleDeleteFriend = async () => {
+    if(selectedUser && selectedUser.username) {
+      const res = await deleteFriendRequest(selectedUser.username)
+    }
+    setIsInfoPanelOpen(false)
 
-  const handleToggleAudio = () => {
-    toggleAudio();
-    setIsAudioEnabled((prev) => !prev);
-  };
+    
+  }
 
   return (
     <div className="w-2/3 xl:w-3/4 bg-white flex">
@@ -102,7 +122,7 @@ const Rightbar: React.FC = () => {
                 ref={localVideoRef}
                 autoPlay
                 muted
-                className="w-auto max-h-[300px] rounded-lg aspect-video border shadow-md"
+                className={`w-64 h-48 bg-black ${!isCameraOn ? "hidden" : ""}`} // Kamera kapalıyken videoyu gizle
               ></video>
             </div>
             {/* Uzak Video */}
@@ -111,33 +131,21 @@ const Rightbar: React.FC = () => {
                 ref={remoteVideoRef}
                 autoPlay
                 className="w-auto max-h-[300px] rounded-lg aspect-video border shadow-md"
-                style={{ display: remoteVideoRef.current?.srcObject ? "block" : "none" }}
               ></video>
-              {!remoteVideoRef.current?.srcObject && (
-                <img
-                  src={selectedUser?.photo || dummyPhoto}
-                  alt="Avatar"
-                  className="w-auto max-h-[300px] rounded-lg aspect-video border shadow-md"
-                />
-              )}
             </div>
           </div>
           <div className="flex justify-center space-x-4 py-4">
-            <button onClick={handleToggleAudio}>
-              <img
-                src={isAudioEnabled ? microphone : muted}
-                alt="Toggle Audio"
-                className="w-6 h-6"
-              />
+            <button>
+              <img src={microphone} alt="Mute" className="w-6 h-6" />
             </button>
-            <button onClick={handleToggleCamera}>
-              <img
-                src={isCameraEnabled ? camera : cameraOff}
-                alt="Toggle Camera"
-                className="w-6 h-6"
-              />
+            <button
+              onClick={handleToggleCamera}
+              className="mt-4 p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              {isCameraOn ? "Kamerayı Kapat" : "Kamerayı Aç"}
             </button>
-            <button onClick={endCall}>
+
+            <button>
               <img src={callCancel} alt="End Call" className="w-6 h-6" />
             </button>
           </div>
@@ -353,7 +361,7 @@ const Rightbar: React.FC = () => {
                     Waiting for {selectedUser?.name} to accept...
                   </h2>
                   <button
-                    onClick={endCall}
+                    onClick={closeCallPopup}
                     className="bg-red-500 text-white px-4 py-2 rounded"
                   >
                     Cancel Call
@@ -442,16 +450,24 @@ const Rightbar: React.FC = () => {
               </div>
             </div>
           </div>
+          <div className="flex justify-center mt-3">
+          <button
+            onClick={handleDeleteFriend}
+            className="flex items-center justify-center px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75 transition duration-300 ease-in-out"
+          >
+            <img src={trash} className="w-5 h-5 mr-2" />
+            Delete Friend
+          </button>
 
-          {
-            selectedUser &&
-            <button onClick={() => deleteFriendRequest(selectedUser.username)} className="bg-red-500 text-white p-2 rounded-md mt-4">
-              Delete Friend
-            </button>
-          }
+          </div>
+
+          
+
         </div>
+
       )}
-    </div>
+    </div >
+
   );
 };
 
