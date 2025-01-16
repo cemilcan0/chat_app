@@ -5,7 +5,6 @@ import Register from "./pages/Register";
 import Chat from "./pages/Chat";
 import { NotificationProvider } from "./context/NotificationContext";
 import { CallProvider } from "./context/CallContext";
-import useChatStore from "./store/chatStore";
 import './App.css';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {

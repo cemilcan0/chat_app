@@ -74,6 +74,13 @@ class NewUserConsumer(WebsocketConsumer):
             )
         print(f"WebSocket disconnected: {self.channel_name}")
 
+    def user_online(self, event):
+        message = event['message']
+        self.send(text_data=json.dumps({
+            'message': message,
+            'status': 'status_change'
+        }))
+
     def receive(self, text_data):
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name, {
