@@ -3,6 +3,11 @@
 @tailwind utilities;
 @import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap');
 
+:root {
+    --scroll-bar-track-bg-color: #f0f0f0; /* Scrollbar track (arka plan) rengi */
+    --scroll-bar-handle-bg-color: #b0b0b0; /* Scrollbar handle (kaydırma çubuğu) rengi */
+}
+
 .emoji-text {
     font-family: 'Noto Color Emoji', sans-serif !important;
 }
@@ -18,4 +23,26 @@
     /* Emoji boyutunu sabit tut */
     height: 30px;
     vertical-align: middle;
+}
+
+::-webkit-scrollbar {
+    width: 17px;
+    height: 17px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background-color: var(--scroll-bar-track-bg-color);
+    opacity: 0.01;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: var(--scroll-bar-handle-bg-color);
+    box-shadow: inset 0 0 6px var(--scroll-bar-handle-bg-color);
+    -webkit-box-shadow: inset 0 0 6px var(--scroll-bar-handle-bg-color);
+}
+
+::-webkit-scrollbar-thumb:window-inactive {
+    background: var(--scroll-bar-track-bg-color);
 }
