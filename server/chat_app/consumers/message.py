@@ -24,7 +24,14 @@ class MessageConsumer(WebsocketConsumer):
         if call_type == 'call_request':
             async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name, {
-                    'type': 'new_call',  # Bu önemli
+                    'type': 'new_call',
+                    'message': message
+                }
+            )
+        elif call_type == 'user_online':
+            async_to_sync(self.channel_layer.group_send)(
+                self.room_group_name, {
+                    'type': 'user_online',
                     'message': message
                 }
             )
@@ -62,6 +69,13 @@ class MessageConsumer(WebsocketConsumer):
         self.send(text_data=json.dumps({
             'message': message,
             'status': 'accepted_friendship_request'
+        }))
+
+    def user_online(self, event):
+        message = event['message']
+        self.send(text_data=json.dumps({
+            'message': message,
+            'status': 'user_online'
         }))
 
     def disconnect(self, code):
