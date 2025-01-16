@@ -34,7 +34,8 @@ class MessageView(CreateAPIView):
             print(f"Receiver found: {user.username}")
             return self.create(request, *args, **kwargs)
         except User.DoesNotExist:
-            error_message = f"User with primary key {receiver_id} does not exist."
+            error_message = f"User with primary key {
+                receiver_id} does not exist."
             print(error_message)
             return Response({
                 "error": error_message
@@ -54,10 +55,8 @@ class ReadMessageView(CreateAPIView):
 
     def post(self, request, username):
         try:
-            # Oturum açmış kullanıcı
             user = request.user
 
-            # Mesajları al ve güncelle
             messages = Message.objects.filter(
                 Q(sender__username=username, receiver=user),
                 read=False
@@ -65,7 +64,6 @@ class ReadMessageView(CreateAPIView):
 
             updated_count = messages.update(read=True)
 
-            # Gönderen kullanıcıyı al
             sender = get_object_or_404(User, username=username)
 
             # Kanal katmanını al
@@ -76,7 +74,7 @@ class ReadMessageView(CreateAPIView):
                     {
                         "type": "message_read",
                         "message": {
-                            "marked_by": user.id,
+                            "marked_by": str(user.id),
                             "count": updated_count,
                         },
                     },
