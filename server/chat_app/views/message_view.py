@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
 from chat_app.models import Message
 from rest_framework.generics import CreateAPIView
@@ -54,34 +55,40 @@ class ReadMessageView(CreateAPIView):
 
     def post(self, request, username):
         try:
+            # Oturum açmış kullanıcı
             user = request.user
 
+            # Mesajları al ve güncelle
             messages = Message.objects.filter(
                 Q(sender__username=username, receiver=user),
-                read=False  # Sadece okunmamış mesajları al
+                read=False
             )
 
             updated_count = messages.update(read=True)
-            sender = User.objects.get(username=username)
-            channel_layer = get_channel_layer()
 
-            async_to_sync(channel_layer.group_send)(
-                f"chat_{sender.id}",
-                {
-                    "type": "message_read",
-                    "message": {
-                        "marked_by": user.username,
-                        "count": updated_count
-                    }
-                }
-            )
+            # Gönderen kullanıcıyı al
+            sender = get_object_or_404(User, username=username)
+
+            # Kanal katmanını al
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    f"chat_{sender.id}",
+                    {
+                        "type": "message_read",
+                        "message": {
+                            "marked_by": user.username,
+                            "count": updated_count,
+                        },
+                    },
+                )
 
             return Response({
                 "message": f"{updated_count} messages marked as read.",
-                "success": True
+                "success": True,
             }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({
                 "error": "An error occurred while marking messages as read.",
-                "details": str(e)
+                "details": str(e),
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
