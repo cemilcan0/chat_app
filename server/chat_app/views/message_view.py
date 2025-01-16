@@ -76,7 +76,7 @@ class ReadMessageView(CreateAPIView):
                     {
                         "type": "message_read",
                         "message": {
-                            "marked_by": user.username,
+                            "marked_by": user.id,
                             "count": updated_count,
                         },
                     },

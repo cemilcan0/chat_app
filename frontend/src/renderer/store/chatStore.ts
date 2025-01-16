@@ -104,7 +104,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
       sender: loggedInUser.username,
       receiver: selectedUser.id,
       date_time: new Date().toISOString(),
-      read: true,
+      read: false,
     };
 
     try {
