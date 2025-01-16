@@ -15,7 +15,7 @@ interface ChatStore {
   resetStore: () => void;
 
   users: UserType[];
-  setUsers: (users: UserType[] | ((prevUsers: UserType[]) => UserType[])) => void;  selectedUser: UserType | null;
+  setUsers: (users: UserType[] | ((prevUsers: UserType[]) => UserType[])) => void; selectedUser: UserType | null;
   incomingCall: IncomingCall | null;
   friendRequests: UserType[];
   fetchUsers: () => Promise<void>;
@@ -47,7 +47,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
       }));
     }
   },
-  
+
   selectedUser: null,
   incomingCall: null,
   friendRequests: [],
@@ -280,6 +280,36 @@ const useChatStore = create<ChatStore>((set, get) => ({
             isVideoCall: data.message.data.isVideoCall,
           },
         });
+      } else if (data.status === "message_read") {
+        const { marked_by } = data.message;
+
+        set((state) => {
+          const updatedUsers = state.users.map((user) =>
+            user.username === marked_by
+              ? {
+                ...user,
+                messages: user.messages.map((msg) => ({
+                  ...msg,
+                  read: true,
+                })),
+              }
+              : user
+          );
+
+          return { users: updatedUsers };
+        });
+
+        if (get().selectedUser?.id === marked_by) {
+          set((state) => ({
+            selectedUser: {
+              ...state.selectedUser!,
+              messages: state.selectedUser!.messages.map((msg) => ({
+                ...msg,
+                read: true,
+              })),
+            },
+          }));
+        }
       } else if (data.status === "new_friendship_request") {
         // Yeni arkadaşlık isteği geldiğinde friendRequests'e ekle
         const newRequest = data.message.sender; // Doğru veri yapısını kullan
